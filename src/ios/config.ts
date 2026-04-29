@@ -38,7 +38,7 @@ export async function writeInitialConfig(options: { force?: boolean } = {}): Pro
   };
 
   await Deno.writeTextFile(CONFIG_FILE, `${JSON.stringify(config, null, 2)}\n`);
-  await ensureGitignoreEntry(".newton/");
+  await ensureInitGitignoreEntries();
   return config;
 }
 
@@ -58,6 +58,11 @@ function chooseScheme(container: XcodeContainer, schemes: string[]): string {
   const basename = container.path.split("/").at(-1)?.replace(/\.(xcodeproj|xcworkspace)$/, "");
   const matching = schemes.find((scheme) => scheme === basename);
   return matching ?? schemes[0];
+}
+
+export async function ensureInitGitignoreEntries(): Promise<void> {
+  await ensureGitignoreEntry(".newton/");
+  await ensureGitignoreEntry(CONFIG_FILE);
 }
 
 async function ensureGitignoreEntry(entry: string): Promise<void> {

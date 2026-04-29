@@ -19,7 +19,7 @@ export async function handleInit(
     `  ${config.project ? "project" : "workspace"}: ${config.project ?? config.workspace}`,
   );
   console.log(`  preferredSimulator: ${config.preferredSimulator}`);
-  console.log("Added .newton/ to .gitignore for generated artifacts.");
+  console.log("Added .newton/ and newton.json to .gitignore.");
 }
 
 export async function handleIos(

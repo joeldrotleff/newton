@@ -68,8 +68,8 @@ newton ios run --no-logs
 newton ios screenshot --display open
 ```
 
-`newton init` creates `newton.json` with sensible defaults and adds `.newton/` to `.gitignore` for
-generated artifacts.
+`newton init` creates `newton.json` with sensible local defaults and adds both `newton.json` and
+`.newton/` to `.gitignore`.
 
 Example `newton.json`:
 
@@ -92,8 +92,9 @@ newton init
 newton init --force
 ```
 
-Creates or overwrites `newton.json` using discovered Xcode project/workspace, a likely default
-scheme, and Newton's preferred installed iPhone simulator.
+Creates or overwrites local `newton.json` using discovered Xcode project/workspace, a likely default
+scheme, and Newton's preferred installed iPhone simulator. Also adds `newton.json` and `.newton/` to
+`.gitignore`.
 
 ### Simulators
 

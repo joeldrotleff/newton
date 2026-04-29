@@ -1,0 +1,8 @@
+# Compiled Newton binary
+/newton
+
+# Newton project artifacts when dogfooding locally
+.newton/
+
+# macOS
+.DS_Store

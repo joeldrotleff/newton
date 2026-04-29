@@ -2,7 +2,9 @@
   "tasks": {
     "check": "deno check src/main.ts",
     "test": "deno test --allow-run --allow-read --allow-write --allow-env",
-    "compile": "deno compile --allow-run --allow-read --allow-write --allow-env --output newton src/main.ts"
+    "compile": "deno compile --allow-run --allow-read --allow-write --allow-env --output newton src/main.ts",
+    "install": "deno task compile && mkdir -p ~/.local/bin && cp ./newton ~/.local/bin/newton",
+    "uninstall": "rm -f ~/.local/bin/newton"
   },
   "fmt": {
     "lineWidth": 100,

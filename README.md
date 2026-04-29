@@ -26,10 +26,30 @@ real-device listing, and initial LSP/preview commands.
 ```sh
 git clone https://github.com/joeldrotleff/newton.git
 cd newton
+deno task install
+```
+
+This compiles the standalone binary and copies it to `~/.local/bin/newton`.
+
+Make sure `~/.local/bin` is on your `PATH`. For Fish:
+
+```fish
+fish_add_path ~/.local/bin
+```
+
+To only compile without installing:
+
+```sh
 deno task compile
 ```
 
 The standalone binary is written to `./newton`.
+
+To uninstall:
+
+```sh
+deno task uninstall
+```
 
 For local development without compiling:
 
@@ -207,4 +227,5 @@ deno fmt
 deno task check
 deno task test
 deno task compile
+deno task install
 ```

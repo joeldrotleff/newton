@@ -78,32 +78,56 @@ export async function runPipe(
     args: producerArgs,
     cwd: options.cwd,
     stdout: "piped",
-    stderr: "inherit",
+    stderr: "piped",
   }).spawn();
 
   const consumer = new Deno.Command(consumerCommand, {
     args: consumerArgs,
     cwd: options.cwd,
     stdin: "piped",
-    stdout: "inherit",
-    stderr: "inherit",
+    stdout: "piped",
+    stderr: "piped",
   }).spawn();
 
+  const producerStderr = streamText(producer.stderr);
+  const consumerStdout = streamText(consumer.stdout);
+  const consumerStderr = streamText(consumer.stderr);
+
   await producer.stdout.pipeTo(consumer.stdin);
-  const [producerStatus, consumerStatus] = await Promise.all([producer.status, consumer.status]);
+  const [producerStatus, consumerStatus, producerError, consumerOutput, consumerError] =
+    await Promise.all([
+      producer.status,
+      consumer.status,
+      producerStderr,
+      consumerStdout,
+      consumerStderr,
+    ]);
 
   if (producerStatus.code !== 0) {
     throw new NewtonError(
-      `Command failed (${producerStatus.code}): ${commandString(producerCommand, producerArgs)}`,
+      `Command failed (${producerStatus.code}): ${commandString(producerCommand, producerArgs)}${
+        formatCapturedOutput(producerError)
+      }`,
       producerStatus.code,
     );
   }
   if (consumerStatus.code !== 0) {
     throw new NewtonError(
-      `Command failed (${consumerStatus.code}): ${commandString(consumerCommand, consumerArgs)}`,
+      `Command failed (${consumerStatus.code}): ${commandString(consumerCommand, consumerArgs)}${
+        formatCapturedOutput(consumerError || consumerOutput)
+      }`,
       consumerStatus.code,
     );
   }
+}
+
+async function streamText(stream: ReadableStream<Uint8Array>): Promise<string> {
+  return await new Response(stream).text();
+}
+
+function formatCapturedOutput(output: string): string {
+  const trimmed = output.trim();
+  return trimmed ? `\n${trimmed}` : "";
 }
 
 export async function executableExists(command: string): Promise<boolean> {

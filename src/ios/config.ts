@@ -37,9 +37,13 @@ export async function writeInitialConfig(options: { force?: boolean } = {}): Pro
     preferredSimulator: simulator.name,
   };
 
-  await Deno.writeTextFile(CONFIG_FILE, `${JSON.stringify(config, null, 2)}\n`);
+  await writeConfig(config);
   await ensureInitGitignoreEntries();
   return config;
+}
+
+export async function writeConfig(config: NewtonConfig, cwd = Deno.cwd()): Promise<void> {
+  await Deno.writeTextFile(resolve(cwd, CONFIG_FILE), `${JSON.stringify(config, null, 2)}\n`);
 }
 
 export async function listSchemes(container: XcodeContainer): Promise<string[]> {

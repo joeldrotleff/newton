@@ -1,10 +1,12 @@
 import { fail } from "../util/errors.ts";
 import { executableExists, runCapture } from "../util/process.ts";
 import { loadConfig, writeInitialConfig } from "./config.ts";
+import { createProject } from "./create.ts";
 import { captureScreenshot, ScreenshotDisplay } from "./screenshot.ts";
 import { listDevices } from "./device.ts";
 import { discoverProject } from "./project.ts";
 import { isAppStoreCompatible, listSimulators, resolveSimulator } from "./simulator.ts";
+import { chooseDevelopmentTeam, listDevelopmentTeams } from "./signing.ts";
 import { build, resolveDerivedData, runLspBuild } from "./xcodebuild.ts";
 import { runApp, RunOptions } from "./run.ts";
 import { join } from "../util/paths.ts";
@@ -27,10 +29,16 @@ export async function handleIos(
   flags: Record<string, string | boolean | string[]>,
 ): Promise<void> {
   switch (command) {
+    case "create":
+      return create(flags);
     case "sims":
       return sims(flags);
     case "devices":
       return devices();
+    case "teams":
+      return teams();
+    case "open":
+      return openProject(flags);
     case "build":
       return buildCommand(flags);
     case "run":
@@ -42,8 +50,46 @@ export async function handleIos(
     case "lsp":
       return lsp(flags);
     default:
-      fail("Usage: newton ios <sims|devices|build|run|screenshot|preview|lsp>");
+      fail("Usage: newton ios <create|sims|devices|teams|open|build|run|screenshot|preview|lsp>");
   }
+}
+
+async function create(flags: Record<string, string | boolean | string[]>): Promise<void> {
+  const name = stringFlag(flags, "_arg0");
+  if (!name) {
+    fail(
+      "Usage: newton ios create <name> [--output path] [--bundle-id id] [--team-id id|--no-team]",
+    );
+  }
+  const teamId = flags["no-team"]
+    ? undefined
+    : stringFlag(flags, "team-id") ?? await chooseDevelopmentTeam();
+
+  const config = await createProject({
+    name,
+    output: stringFlag(flags, "output"),
+    bundleId: stringFlag(flags, "bundle-id"),
+    teamId,
+  });
+
+  console.log("Created iOS project");
+  console.log(`  scheme: ${config.scheme}`);
+  console.log(`  project: ${config.project}`);
+  if (teamId) console.log(`  developmentTeam: ${teamId}`);
+  console.log("Created newton.json and added .newton/ and newton.json to .gitignore.");
+}
+
+async function teams(): Promise<void> {
+  const teams = await listDevelopmentTeams();
+  if (teams.length === 0) {
+    console.log("No Apple Development signing teams found.");
+    return;
+  }
+
+  printTable(
+    ["Team ID", "Organization", "Certificate"],
+    teams.map((team) => [team.teamId, team.organization, team.commonName]),
+  );
 }
 
 async function sims(flags: Record<string, string | boolean | string[]>): Promise<void> {
@@ -78,6 +124,12 @@ async function devices(): Promise<void> {
       device.connectionState ?? "",
     ]),
   );
+}
+
+async function openProject(flags: Record<string, string | boolean | string[]>): Promise<void> {
+  const options = await toRunOptions(flags);
+  const container = await discoverProject(options);
+  await runCapture("open", [container.path]);
 }
 
 async function buildCommand(flags: Record<string, string | boolean | string[]>): Promise<void> {
@@ -137,6 +189,7 @@ async function lsp(flags: Record<string, string | boolean | string[]>): Promise<
     fail("Missing xcode-build-server. Install it with:\n  brew install xcode-build-server");
   }
 
+  console.log("Preparing SourceKit-LSP files...");
   const container = await discoverProject(options);
   const derivedData = await resolveDerivedData(options.derivedData);
   const simulator = await resolveSimulator({
@@ -147,6 +200,7 @@ async function lsp(flags: Record<string, string | boolean | string[]>): Promise<
   });
   await (await import("./simulator.ts")).bootSimulator(simulator.udid);
 
+  console.log("Generating xcode-build-server config...");
   await runCapture("xcode-build-server", [
     "config",
     container.kind === "workspace" ? "-workspace" : "-project",
@@ -157,6 +211,7 @@ async function lsp(flags: Record<string, string | boolean | string[]>): Promise<
     derivedData,
   ]);
 
+  console.log("Building once to extract compiler settings; xcodebuild output is hidden...");
   await runLspBuild({
     ...options,
     container,
@@ -171,6 +226,8 @@ async function lsp(flags: Record<string, string | boolean | string[]>): Promise<
     await Deno.copyFile("buildServer.json", join(sourceRoot, "buildServer.json"));
     await Deno.copyFile(".compile", join(sourceRoot, ".compile"));
   }
+
+  console.log("Generated buildServer.json and .compile for SourceKit-LSP.");
 }
 
 async function toRunOptions(

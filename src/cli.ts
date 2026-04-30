@@ -49,8 +49,11 @@ function printHelp(): void {
 
 Usage:
   newton init [--force]
+  newton ios create <name> [--output path] [--bundle-id id] [--team-id id|--no-team]
   newton ios sims [--idiom iphone|ipad] [--app-store iphone|ipad]
   newton ios devices
+  newton ios teams
+  newton ios open [--project path|--workspace path]
   newton ios build --scheme <scheme> [--project path|--workspace path]
   newton ios run --scheme <scheme> [--sim name] [--target sim|device] [--no-logs]
   newton ios screenshot [--output path] [--display inline|open|none]

@@ -7,6 +7,7 @@ export interface CommandResult {
 }
 
 const decoder = new TextDecoder();
+const encoder = new TextEncoder();
 
 export function commandString(command: string, args: string[]): string {
   return [command, ...args.map((arg) => arg.includes(" ") ? JSON.stringify(arg) : arg)].join(" ");
@@ -55,16 +56,44 @@ export async function runInherit(
     stdout: "inherit",
     stderr: "inherit",
   }).spawn();
-  const status = await process.status;
 
-  if (options.check !== false && status.code !== 0) {
-    throw new NewtonError(
-      `Command failed (${status.code}): ${commandString(command, args)}`,
-      status.code,
-    );
+  let interrupted = false;
+  let forceKillTimer: number | undefined;
+  const handleInterrupt = () => {
+    interrupted = true;
+    Deno.stderr.writeSync(encoder.encode("\n"));
+    try {
+      process.kill("SIGINT");
+    } catch {
+      // The child may have already exited from the terminal's SIGINT.
+    }
+    forceKillTimer = setTimeout(() => {
+      try {
+        process.kill("SIGTERM");
+      } catch {
+        // Nothing left to terminate.
+      }
+    }, 1_000);
+  };
+
+  Deno.addSignalListener("SIGINT", handleInterrupt);
+  try {
+    const status = await process.status;
+
+    if (forceKillTimer !== undefined) clearTimeout(forceKillTimer);
+    if (interrupted) return status.code || 130;
+
+    if (options.check !== false && status.code !== 0) {
+      throw new NewtonError(
+        `Command failed (${status.code}): ${commandString(command, args)}`,
+        status.code,
+      );
+    }
+
+    return status.code;
+  } finally {
+    Deno.removeSignalListener("SIGINT", handleInterrupt);
   }
-
-  return status.code;
 }
 
 export async function runPipe(

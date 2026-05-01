@@ -68,8 +68,8 @@ newton run --no-logs
 newton screenshot --display open
 ```
 
-`newton init` creates `newton.json` with sensible local defaults and adds both `newton.json` and
-`.newton/` to `.gitignore`.
+`newton init` creates `newton.json` with sensible local defaults and adds `.newton/` to
+`.gitignore`.
 
 Example `newton.json`:
 
@@ -97,14 +97,14 @@ newton init --force
 ```
 
 `newton create` creates a starter SwiftUI iOS app in `ios/`, writes `newton.json`, and adds
-`newton.json` and `.newton/` to `.gitignore`. By default, the module name is derived by removing
-characters that are unsafe for Swift identifiers. During creation, Newton lists Apple Development
-signing teams detected from local certificates and prompts for the team to write as
-`DEVELOPMENT_TEAM`; pass `--team-id` or `--no-team` to skip the prompt.
+`.newton/` to `.gitignore`. By default, the module name is derived by removing characters that are
+unsafe for Swift identifiers. During creation, Newton lists Apple Development signing teams detected
+from local certificates and prompts for the team to write as `DEVELOPMENT_TEAM`; pass `--team-id` or
+`--no-team` to skip the prompt.
 
 `newton init` creates or overwrites local `newton.json` using discovered Xcode project/workspace, a
-likely default scheme, and Newton's preferred installed iPhone simulator. Also adds `newton.json`
-and `.newton/` to `.gitignore`.
+likely default scheme, and Newton's preferred installed iPhone simulator. Also adds `.newton/` to
+`.gitignore`.
 
 ### Simulators
 

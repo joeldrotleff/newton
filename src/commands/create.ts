@@ -25,5 +25,5 @@ export async function createCommand(flags: CliFlags): Promise<void> {
   console.log(`  scheme: ${config.scheme}`);
   console.log(`  project: ${config.project}`);
   if (teamId) console.log(`  developmentTeam: ${teamId}`);
-  console.log("Created newton.json and added .newton/ and newton.json to .gitignore.");
+  console.log("Created newton.json and added .newton/ to .gitignore.");
 }

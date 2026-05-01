@@ -12,5 +12,5 @@ export async function initCommand(flags: CliFlags): Promise<void> {
     `  ${config.project ? "project" : "workspace"}: ${config.project ?? config.workspace}`,
   );
   console.log(`  preferredSimulator: ${config.preferredSimulator}`);
-  console.log("Added .newton/ and newton.json to .gitignore.");
+  console.log("Added .newton/ to .gitignore.");
 }

@@ -31,7 +31,7 @@ Deno.test("createProject writes a self-contained Newton iOS project", async () =
 
     const gitignore = await Deno.readTextFile(`${tempDir}/.gitignore`);
     assertStringIncludes(gitignore, ".newton/\n");
-    assertStringIncludes(gitignore, "newton.json\n");
+    assertEquals(gitignore.includes("newton.json"), false);
 
     const generatedFiles = await readGeneratedTextFiles(`${tempDir}/ios`);
     for (const contents of generatedFiles.values()) {

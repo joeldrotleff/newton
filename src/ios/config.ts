@@ -66,7 +66,6 @@ function chooseScheme(container: XcodeContainer, schemes: string[]): string {
 
 export async function ensureInitGitignoreEntries(): Promise<void> {
   await ensureGitignoreEntry(".newton/");
-  await ensureGitignoreEntry(CONFIG_FILE);
 }
 
 async function ensureGitignoreEntry(entry: string): Promise<void> {

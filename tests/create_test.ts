@@ -32,10 +32,33 @@ Deno.test("createProject writes a self-contained Newton iOS project", async () =
     const gitignore = await Deno.readTextFile(`${tempDir}/.gitignore`);
     assertStringIncludes(gitignore, ".newton/\n");
     assertStringIncludes(gitignore, "newton.json\n");
+
+    const generatedFiles = await readGeneratedTextFiles(`${tempDir}/ios`);
+    for (const contents of generatedFiles.values()) {
+      assertEquals(contents.includes("__MODULE_NAME__"), false);
+      assertEquals(contents.includes("__DISPLAY_NAME_SWIFT__"), false);
+      assertEquals(contents.includes("${"), false);
+      assertEquals(contents.includes("`;"), false);
+    }
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
 });
+
+async function readGeneratedTextFiles(root: string): Promise<Map<string, string>> {
+  const files = new Map<string, string>();
+
+  async function readDirectory(path: string): Promise<void> {
+    for await (const entry of Deno.readDir(path)) {
+      const childPath = `${path}/${entry.name}`;
+      if (entry.isDirectory) await readDirectory(childPath);
+      else if (entry.isFile) files.set(childPath, await Deno.readTextFile(childPath));
+    }
+  }
+
+  await readDirectory(root);
+  return files;
+}
 
 Deno.test("createProject writes development team when provided", async () => {
   const tempDir = await Deno.makeTempDir();

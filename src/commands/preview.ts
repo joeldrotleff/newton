@@ -4,6 +4,7 @@ import { runApp } from "../ios/run.ts";
 import { fail } from "../util/errors.ts";
 import { previewOptionsFromFlags, runOptionsFromFlags } from "./options.ts";
 
+// Runs a named app-side preview and captures it as a screenshot.
 export async function previewCommand(flags: CliFlags): Promise<void> {
   const options = await previewOptionsFromFlags(flags);
   if (!options.name) fail("Usage: newton preview <name> --scheme <scheme>");

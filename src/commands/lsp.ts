@@ -7,6 +7,7 @@ import { join } from "../util/paths.ts";
 import { executableExists, runCapture } from "../util/process.ts";
 import { lspOptionsFromFlags } from "./options.ts";
 
+// Generates SourceKit-LSP support files via xcode-build-server.
 export async function lspCommand(flags: CliFlags): Promise<void> {
   const options = await lspOptionsFromFlags(flags);
   if (!options.scheme) fail("Missing required --scheme <name>.");

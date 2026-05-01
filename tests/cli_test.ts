@@ -9,13 +9,6 @@ Deno.test("parseCli treats iOS commands as top-level commands", () => {
   assertEquals(parsed.flags.scheme, "Axion");
 });
 
-Deno.test("parseCli keeps legacy ios prefix working", () => {
-  const parsed = parseCli(["ios", "run", "--no-logs"]);
-
-  assertEquals(parsed.command, "run");
-  assertEquals(parsed.flags["no-logs"], true);
-});
-
 Deno.test("parseFlags handles repeated app args and booleans", () => {
   const parsed = parseFlags([
     "metricCards",

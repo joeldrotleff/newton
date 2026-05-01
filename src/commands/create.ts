@@ -4,6 +4,7 @@ import { chooseDevelopmentTeam } from "../ios/signing.ts";
 import { fail } from "../util/errors.ts";
 import { createOptionsFromFlags } from "./options.ts";
 
+// Creates a starter SwiftUI iOS project and writes its Newton config.
 export async function createCommand(flags: CliFlags): Promise<void> {
   const options = createOptionsFromFlags(flags);
   if (!options.name) {

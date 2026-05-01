@@ -1,6 +1,7 @@
 import { printTable } from "../cli/table.ts";
 import { listDevelopmentTeams } from "../ios/signing.ts";
 
+// Lists local Apple Development signing teams discovered from certificates.
 export async function teamsCommand(): Promise<void> {
   const teams = await listDevelopmentTeams();
   if (teams.length === 0) {

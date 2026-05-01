@@ -7,8 +7,7 @@ export interface ParsedCli {
 }
 
 export function parseCli(args: string[]): ParsedCli {
-  const [root, ...tail] = args;
-  const command = root === "ios" ? tail.shift() : root;
+  const [command, ...tail] = args;
   if (!command) fail("Missing command. Try newton --help.");
 
   const { positional, flags } = parseFlags(tail);

@@ -2,6 +2,7 @@ import { CliFlags } from "../cli/flags.ts";
 import { writeInitialConfig } from "../ios/config.ts";
 import { initOptionsFromFlags } from "./options.ts";
 
+// Creates newton.json from the current Xcode project/workspace and simulator defaults.
 export async function initCommand(flags: CliFlags): Promise<void> {
   const options = initOptionsFromFlags(flags);
   const config = await writeInitialConfig({ force: options.force });

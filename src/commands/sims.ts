@@ -2,6 +2,7 @@ import { CliFlags, stringFlag } from "../cli/flags.ts";
 import { printTable } from "../cli/table.ts";
 import { isAppStoreCompatible, listSimulators, resolveSimulator } from "../ios/simulator.ts";
 
+// Lists installed iOS simulators and marks Newton's default choice.
 export async function simsCommand(flags: CliFlags): Promise<void> {
   const idiom = stringFlag(flags, "app-store") ?? stringFlag(flags, "idiom") ?? "iphone";
   const devices = await listSimulators();

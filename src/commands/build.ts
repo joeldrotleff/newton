@@ -6,6 +6,7 @@ import { build, resolveDerivedData } from "../ios/xcodebuild.ts";
 import { fail } from "../util/errors.ts";
 import { runOptionsFromFlags } from "./options.ts";
 
+// Builds the selected scheme for a simulator or connected device.
 export async function buildCommand(flags: CliFlags): Promise<void> {
   const options = await runOptionsFromFlags(flags);
   if (!options.scheme) fail("Missing required --scheme <name>.");

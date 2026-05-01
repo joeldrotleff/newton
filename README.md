@@ -62,10 +62,10 @@ deno run --allow-run --allow-read --allow-write --allow-env src/main.ts --help
 From an iOS project root:
 
 ```sh
-newton ios create "My App"
-newton ios build
-newton ios run --no-logs
-newton ios screenshot --display open
+newton create "My App"
+newton build
+newton run --no-logs
+newton screenshot --display open
 ```
 
 `newton init` creates `newton.json` with sensible local defaults and adds both `newton.json` and
@@ -88,15 +88,15 @@ Use `workspace` instead of `project` when the selected Xcode container is an `.x
 ### Project setup
 
 ```sh
-newton ios create "My App"
-newton ios create "My App" --output ~/code/my-app --bundle-id com.example.myapp
-newton ios create "My App" --team-id 4DQ648JWVG
-newton ios create "My App" --no-team
+newton create "My App"
+newton create "My App" --output ~/code/my-app --bundle-id com.example.myapp
+newton create "My App" --team-id 4DQ648JWVG
+newton create "My App" --no-team
 newton init
 newton init --force
 ```
 
-`newton ios create` creates a starter SwiftUI iOS app in `ios/`, writes `newton.json`, and adds
+`newton create` creates a starter SwiftUI iOS app in `ios/`, writes `newton.json`, and adds
 `newton.json` and `.newton/` to `.gitignore`. By default, the module name is derived by removing
 characters that are unsafe for Swift identifiers. During creation, Newton lists Apple Development
 signing teams detected from local certificates and prompts for the team to write as
@@ -109,10 +109,10 @@ and `.newton/` to `.gitignore`.
 ### Simulators
 
 ```sh
-newton ios sims
-newton ios sims --idiom ipad
-newton ios sims --app-store iphone
-newton ios sims --app-store ipad
+newton sims
+newton sims --idiom ipad
+newton sims --app-store iphone
+newton sims --app-store ipad
 ```
 
 Lists available iOS simulators, marks Newton's default selection, and marks App Store
@@ -121,7 +121,7 @@ screenshot-compatible devices.
 ### Devices
 
 ```sh
-newton ios devices
+newton devices
 ```
 
 Lists connected iPhone/iPad devices detected by `xcrun devicectl`.
@@ -129,7 +129,7 @@ Lists connected iPhone/iPad devices detected by `xcrun devicectl`.
 ### Signing teams
 
 ```sh
-newton ios teams
+newton teams
 ```
 
 Lists Apple Development signing teams detected from local certificates. Newton uses the certificate
@@ -138,9 +138,9 @@ subject's `OU` value as the Xcode `DEVELOPMENT_TEAM` id.
 ### Open in Xcode
 
 ```sh
-newton ios open
-newton ios open --project ios/Axion.xcodeproj
-newton ios open --workspace ios/Axion.xcworkspace
+newton open
+newton open --project ios/Axion.xcodeproj
+newton open --workspace ios/Axion.xcworkspace
 ```
 
 Opens the discovered or configured Xcode project/workspace.
@@ -148,12 +148,12 @@ Opens the discovered or configured Xcode project/workspace.
 ### Build
 
 ```sh
-newton ios build
-newton ios build --scheme Axion
-newton ios build --scheme Axion --project ios/Axion.xcodeproj
-newton ios build --scheme Axion --workspace ios/Axion.xcworkspace
-newton ios build --scheme Axion --sim "iPhone 17 Pro"
-newton ios build --scheme Axion --target device --device "Joel's iPhone"
+newton build
+newton build --scheme Axion
+newton build --scheme Axion --project ios/Axion.xcodeproj
+newton build --scheme Axion --workspace ios/Axion.xcworkspace
+newton build --scheme Axion --sim "iPhone 17 Pro"
+newton build --scheme Axion --target device --device "Joel's iPhone"
 ```
 
 Builds the selected scheme with `xcodebuild`. If `newton.json` exists, `--scheme`,
@@ -162,11 +162,11 @@ Builds the selected scheme with `xcodebuild`. If `newton.json` exists, `--scheme
 ### Run
 
 ```sh
-newton ios run
-newton ios run --no-logs
-newton ios run --logs --log-level debug --log-filter chat,sse
-newton ios run --app-store iphone --no-logs
-newton ios run --target device --device "Joel's iPhone" --no-logs
+newton run
+newton run --no-logs
+newton run --logs --log-level debug --log-filter chat,sse
+newton run --app-store iphone --no-logs
+newton run --target device --device "Joel's iPhone" --no-logs
 ```
 
 Builds, installs, and launches the app on a simulator or connected device.
@@ -183,17 +183,17 @@ Convenience logging flags are passed as app launch arguments:
 Raw app launch args can be repeated:
 
 ```sh
-newton ios run --app-arg -SomeFlag --app-arg value
+newton run --app-arg -SomeFlag --app-arg value
 ```
 
 ### Screenshots
 
 ```sh
-newton ios screenshot
-newton ios screenshot --output .newton/screenshots/home.png
-newton ios screenshot --display inline
-newton ios screenshot --display open
-newton ios screenshot --display none
+newton screenshot
+newton screenshot --output .newton/screenshots/home.png
+newton screenshot --display inline
+newton screenshot --display open
+newton screenshot --display none
 ```
 
 Captures the selected simulator screen using `xcrun simctl io screenshot`. By default, Newton uses
@@ -202,9 +202,9 @@ the configured preferred simulator or its normal default simulator selection.
 ### SwiftUI preview host workflow
 
 ```sh
-newton ios preview metricCards
-newton ios preview metricCards --display inline
-newton ios preview metricCards --delay 3
+newton preview metricCards
+newton preview metricCards --display inline
+newton preview metricCards --delay 3
 ```
 
 Runs the app with `-NewtonPreview <name>`, waits briefly, captures a screenshot, and displays it.
@@ -213,9 +213,9 @@ This requires app-side opt-in code that maps preview names to SwiftUI views.
 ### SourceKit-LSP
 
 ```sh
-newton ios lsp
-newton ios lsp --scheme Axion
-newton ios lsp --scheme Axion --source-root ios/Axion/Axion
+newton lsp
+newton lsp --scheme Axion
+newton lsp --scheme Axion --source-root ios/Axion/Axion
 ```
 
 Generates `xcode-build-server` files for SourceKit-LSP.

@@ -168,7 +168,7 @@ export async function bootedSimulatorUdid(): Promise<string> {
     const device = runtimeDevices.find((candidate) => candidate.state === "Booted");
     if (device) return device.udid;
   }
-  fail("No booted simulator found. Pass --sim/--udid or run `newton ios run` first.");
+  fail("No booted simulator found. Pass --sim/--udid or run `newton run` first.");
 }
 
 export async function launchSimulatorApp(

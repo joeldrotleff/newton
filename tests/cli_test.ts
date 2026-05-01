@@ -1,5 +1,20 @@
 import { assertEquals } from "@std/assert";
-import { parseFlags } from "../src/cli.ts";
+import { parseCli, parseFlags } from "../src/cli.ts";
+
+Deno.test("parseCli treats iOS commands as top-level commands", () => {
+  const parsed = parseCli(["preview", "metricCards", "--scheme", "Axion"]);
+
+  assertEquals(parsed.command, "preview");
+  assertEquals(parsed.flags._arg0, "metricCards");
+  assertEquals(parsed.flags.scheme, "Axion");
+});
+
+Deno.test("parseCli keeps legacy ios prefix working", () => {
+  const parsed = parseCli(["ios", "run", "--no-logs"]);
+
+  assertEquals(parsed.command, "run");
+  assertEquals(parsed.flags["no-logs"], true);
+});
 
 Deno.test("parseFlags handles repeated app args and booleans", () => {
   const parsed = parseFlags([

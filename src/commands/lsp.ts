@@ -28,12 +28,12 @@ export async function lspCommand(flags: CliFlags): Promise<void> {
 
   console.log("Generating xcode-build-server config...");
   await runCapture("xcode-build-server", [
-    "config",
-    container.kind === "workspace" ? "-workspace" : "-project",
+    "config", // Generate buildServer.json for SourceKit-LSP.
+    container.kind === "workspace" ? "-workspace" : "-project", // Select workspace/project mode.
     container.path,
-    "-scheme",
+    "-scheme", // Use the named Xcode scheme.
     options.scheme,
-    "--build_root",
+    "--build_root", // Store xcode-build-server artifacts in the next directory.
     derivedData,
   ]);
 

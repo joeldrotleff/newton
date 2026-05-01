@@ -30,8 +30,8 @@ export async function locateBuiltApp(options: BuildOptions): Promise<string> {
 export async function readBundleId(appPath: string): Promise<string> {
   const plist = join(appPath, "Info.plist");
   const result = await runCapture("/usr/libexec/PlistBuddy", [
-    "-c",
-    "Print :CFBundleIdentifier",
+    "-c", // Run the next PlistBuddy command.
+    "Print :CFBundleIdentifier", // Read the app bundle identifier from Info.plist.
     plist,
   ], {
     check: false,

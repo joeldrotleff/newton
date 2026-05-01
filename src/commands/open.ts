@@ -7,5 +7,7 @@ import { runOptionsFromFlags } from "./options.ts";
 export async function openCommand(flags: CliFlags): Promise<void> {
   const options = await runOptionsFromFlags(flags);
   const container = await discoverProject(options);
-  await runCapture("open", [container.path]);
+  await runCapture("open", [
+    container.path, // Ask macOS to open the selected Xcode project/workspace.
+  ]);
 }

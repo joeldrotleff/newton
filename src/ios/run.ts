@@ -81,8 +81,18 @@ export async function runApp(options: RunOptions): Promise<void> {
     derivedData,
   });
   const bundleId = await readBundleId(appPath);
-  await runCapture("xcrun", ["simctl", "terminate", simulator.udid, bundleId], { check: false });
-  await runCapture("xcrun", ["simctl", "install", simulator.udid, appPath]);
+  await runCapture("xcrun", [
+    "simctl", // Run the Simulator control tool through xcrun.
+    "terminate", // Stop any currently running copy before installing the new build.
+    simulator.udid,
+    bundleId,
+  ], { check: false });
+  await runCapture("xcrun", [
+    "simctl", // Run the Simulator control tool through xcrun.
+    "install", // Install the built .app onto the selected simulator.
+    simulator.udid,
+    appPath,
+  ]);
   await launchSimulatorApp(simulator.udid, bundleId, appArgs, options.logs ?? true);
 }
 

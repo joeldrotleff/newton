@@ -48,8 +48,18 @@ export async function writeConfig(config: NewtonConfig, cwd = Deno.cwd()): Promi
 
 export async function listSchemes(container: XcodeContainer): Promise<string[]> {
   const args = container.kind === "workspace"
-    ? ["-list", "-json", "-workspace", container.path]
-    : ["-list", "-json", "-project", container.path];
+    ? [
+      "-list", // List projects, targets, and schemes instead of building.
+      "-json", // Emit machine-readable project/workspace metadata.
+      "-workspace", // Inspect the workspace at the next path.
+      container.path,
+    ]
+    : [
+      "-list", // List projects, targets, and schemes instead of building.
+      "-json", // Emit machine-readable project metadata.
+      "-project", // Inspect the project at the next path.
+      container.path,
+    ];
   const { stdout } = await runCapture("xcodebuild", args);
   const json = JSON.parse(stdout);
   return json.project?.schemes ?? json.workspace?.schemes ?? [];

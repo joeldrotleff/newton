@@ -10,11 +10,11 @@ export interface DevelopmentTeam {
 
 export async function listDevelopmentTeams(): Promise<DevelopmentTeam[]> {
   const result = await runCapture("security", [
-    "find-certificate",
-    "-a",
-    "-c",
+    "find-certificate", // Search keychains for matching certificates.
+    "-a", // Return all matches instead of only the first one.
+    "-c", // Match certificates whose common name contains the next value.
     "Apple Development",
-    "-p",
+    "-p", // Print each certificate as PEM so openssl can inspect it later.
   ], { check: false });
   if (result.code !== 0 || !result.stdout.trim()) return [];
 
@@ -98,13 +98,13 @@ async function certificateSubject(pem: string): Promise<string> {
   try {
     await Deno.writeTextFile(certPath, pem);
     const result = await runCapture("openssl", [
-      "x509",
-      "-in",
+      "x509", // Inspect an X.509 certificate.
+      "-in", // Read the certificate from the next path.
       certPath,
-      "-noout",
-      "-subject",
-      "-nameopt",
-      "RFC2253",
+      "-noout", // Do not print the encoded certificate body.
+      "-subject", // Print only the certificate subject fields.
+      "-nameopt", // Format subject fields using the next option.
+      "RFC2253", // Emit a stable comma-separated subject format.
     ]);
     return result.stdout.trim();
   } finally {

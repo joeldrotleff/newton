@@ -12,7 +12,13 @@ export interface IOSDevice {
 
 export async function listDevices(): Promise<IOSDevice[]> {
   const jsonPath = join(await Deno.makeTempDir(), "devices.json");
-  await runCapture("xcrun", ["devicectl", "list", "devices", "--json-output", jsonPath]);
+  await runCapture("xcrun", [
+    "devicectl", // Run Xcode's device management tool through xcrun.
+    "list", // List connected devices.
+    "devices", // Limit the listing to devices rather than other resources.
+    "--json-output", // Write machine-readable output to the next path.
+    jsonPath,
+  ]);
   const json = JSON.parse(await Deno.readTextFile(jsonPath));
   const devices = json.result?.devices ?? json.devices ?? [];
 
@@ -61,11 +67,11 @@ export async function resolveDevice(nameOrId?: string): Promise<IOSDevice> {
 
 export async function installDeviceApp(device: IOSDevice, appPath: string): Promise<void> {
   await runCapture("xcrun", [
-    "devicectl",
-    "device",
-    "install",
-    "app",
-    "--device",
+    "devicectl", // Run Xcode's device management tool through xcrun.
+    "device", // Use the device subcommands.
+    "install", // Install content onto the device.
+    "app", // The installed content is an app bundle.
+    "--device", // Target the device identified by the next argument.
     device.identifier,
     appPath,
   ]);
@@ -78,15 +84,15 @@ export async function launchDeviceApp(
   logs: boolean,
 ): Promise<void> {
   const args = [
-    "devicectl",
-    "device",
-    "process",
-    "launch",
-    "--device",
+    "devicectl", // Run Xcode's device management tool through xcrun.
+    "device", // Use the device subcommands.
+    "process", // Manage processes on the device.
+    "launch", // Start the app process.
+    "--device", // Target the device identified by the next argument.
     device.identifier,
-    ...(logs ? ["--console"] : []),
+    ...(logs ? ["--console"] : []), // Stream process console output through this terminal.
     bundleId,
-    ...(appArgs.length > 0 ? ["--", ...appArgs] : []),
+    ...(appArgs.length > 0 ? ["--", ...appArgs] : []), // Separate devicectl args from app args.
   ];
   if (logs) await runInherit("xcrun", args);
   else await runCapture("xcrun", args);

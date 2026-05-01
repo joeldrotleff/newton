@@ -43,18 +43,18 @@ export function buildArgs(options: BuildOptions): string[] {
   const actions = options.action === "clean build" ? ["clean", "build"] : ["build"];
   return [
     ...containerArgs(options.container),
-    "-scheme",
+    "-scheme", // Build the named scheme.
     options.scheme,
-    "-destination",
+    "-destination", // Select the simulator or device destination.
     buildDestination(options),
-    "-derivedDataPath",
+    "-derivedDataPath", // Keep build products in Newton's local derived data folder.
     options.derivedData ?? ".newton/DerivedData",
-    "-parallelizeTargets",
-    ...(options.verbose ? [] : ["-quiet"]),
-    "-configuration",
+    "-parallelizeTargets", // Let xcodebuild build independent targets concurrently.
+    ...(options.verbose ? [] : ["-quiet"]), // Hide normal xcodebuild output unless requested.
+    "-configuration", // Debug/Release or another project-defined configuration.
     options.configuration ?? "Debug",
-    "ONLY_ACTIVE_ARCH=YES",
-    ...(options.target === "sim" ? ["CODE_SIGN_IDENTITY=-"] : []),
+    "ONLY_ACTIVE_ARCH=YES", // Build only the selected destination architecture for faster local runs.
+    ...(options.target === "sim" ? ["CODE_SIGN_IDENTITY=-"] : []), // Simulators do not need code signing.
     ...actions,
   ];
 }
@@ -62,16 +62,16 @@ export function buildArgs(options: BuildOptions): string[] {
 export async function showBuildSettings(options: BuildOptions): Promise<any[]> {
   const { stdout } = await runCapture("xcodebuild", [
     ...containerArgs(options.container),
-    "-scheme",
+    "-scheme", // Inspect settings for the named scheme.
     options.scheme,
-    "-destination",
+    "-destination", // Match the same simulator or device used for the build.
     buildDestination(options),
-    "-derivedDataPath",
+    "-derivedDataPath", // Use Newton's derived data location when resolving build products.
     options.derivedData ?? ".newton/DerivedData",
-    "-configuration",
+    "-configuration", // Read settings for the selected build configuration.
     options.configuration ?? "Debug",
-    "-showBuildSettings",
-    "-json",
+    "-showBuildSettings", // Print target build settings instead of building.
+    "-json", // Emit machine-readable settings.
   ]);
   return JSON.parse(stdout);
 }
@@ -82,10 +82,10 @@ export async function runLspBuild(options: BuildOptions): Promise<void> {
     buildArgs({ ...options, action: "clean build", verbose: true }),
     "xcode-build-server",
     [
-      "parse",
-      "-o",
+      "parse", // Convert xcodebuild output into compile commands.
+      "-o", // Write the compile database to the next path.
       ".compile",
-      "--skip-validate-bin",
+      "--skip-validate-bin", // Avoid requiring compiled binaries while generating LSP metadata.
     ],
   );
 }

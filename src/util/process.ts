@@ -160,6 +160,9 @@ function formatCapturedOutput(output: string): string {
 }
 
 export async function executableExists(command: string): Promise<boolean> {
-  const result = await runCapture("/usr/bin/env", ["which", command], { check: false });
+  const result = await runCapture("/usr/bin/env", [
+    "which", // Locate the executable using the caller's PATH.
+    command,
+  ], { check: false });
   return result.code === 0;
 }

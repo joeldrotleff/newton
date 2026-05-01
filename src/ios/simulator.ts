@@ -38,11 +38,11 @@ const IPAD_SCREENSHOT_PATTERNS = [
 
 export async function listSimulators(): Promise<SimulatorDevice[]> {
   const { stdout } = await runCapture("xcrun", [
-    "simctl",
-    "list",
-    "devices",
-    "available",
-    "--json",
+    "simctl", // Run the Simulator control tool through xcrun.
+    "list", // List simulator resources.
+    "devices", // Limit the listing to simulator devices.
+    "available", // Exclude unavailable runtimes/devices.
+    "--json", // Emit machine-readable device data.
   ]);
   const json = JSON.parse(stdout);
   const devices: SimulatorDevice[] = [];
@@ -151,18 +151,40 @@ function rankDevice(name: string, idiom: Idiom): number {
 }
 
 export async function bootSimulator(udid: string): Promise<void> {
-  await runCapture("xcrun", ["simctl", "boot", udid], { check: false });
-  await runCapture("xcrun", ["simctl", "bootstatus", udid, "-b"]);
+  await runCapture("xcrun", [
+    "simctl", // Run the Simulator control tool through xcrun.
+    "boot", // Start the selected simulator if it is not already booted.
+    udid,
+  ], { check: false });
+  await runCapture("xcrun", [
+    "simctl", // Run the Simulator control tool through xcrun.
+    "bootstatus", // Wait for the simulator boot process to finish.
+    udid,
+    "-b", // Block until boot completes.
+  ]);
 }
 
 export async function openSimulator(udid: string): Promise<void> {
-  await runCapture("open", ["-a", "Simulator", "--args", "-CurrentDeviceUDID", udid], {
+  await runCapture("open", [
+    "--background", // Launch or reuse Simulator without bringing it to the foreground.
+    "-a", // Open with the application named by the next argument.
+    "Simulator", // Application to open.
+    "--args", // Pass the remaining arguments to Simulator itself.
+    "-CurrentDeviceUDID", // Ask Simulator to show the selected device.
+    udid,
+  ], {
     check: false,
   });
 }
 
 export async function bootedSimulatorUdid(): Promise<string> {
-  const { stdout } = await runCapture("xcrun", ["simctl", "list", "devices", "booted", "--json"]);
+  const { stdout } = await runCapture("xcrun", [
+    "simctl", // Run the Simulator control tool through xcrun.
+    "list", // List simulator resources.
+    "devices", // Limit the listing to simulator devices.
+    "booted", // Only include currently booted devices.
+    "--json", // Emit machine-readable device data.
+  ]);
   const json = JSON.parse(stdout);
   for (const runtimeDevices of Object.values<any[]>(json.devices ?? {})) {
     const device = runtimeDevices.find((candidate) => candidate.state === "Booted");
@@ -178,8 +200,21 @@ export async function launchSimulatorApp(
   logs: boolean,
 ): Promise<void> {
   if (logs) {
-    await runInherit("xcrun", ["simctl", "launch", "--console-pty", udid, bundleId, ...appArgs]);
+    await runInherit("xcrun", [
+      "simctl", // Run the Simulator control tool through xcrun.
+      "launch", // Start the app on the selected simulator.
+      "--console-pty", // Stream the app's console output through this terminal.
+      udid,
+      bundleId,
+      ...appArgs, // Forward Newton app arguments to the launched app.
+    ]);
   } else {
-    await runCapture("xcrun", ["simctl", "launch", udid, bundleId, ...appArgs]);
+    await runCapture("xcrun", [
+      "simctl", // Run the Simulator control tool through xcrun.
+      "launch", // Start the app on the selected simulator.
+      udid,
+      bundleId,
+      ...appArgs, // Forward Newton app arguments to the launched app.
+    ]);
   }
 }

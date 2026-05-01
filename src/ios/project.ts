@@ -67,8 +67,14 @@ async function collectContainers(
 
 export function containerArgs(container: XcodeContainer): string[] {
   return container.kind === "workspace"
-    ? ["-workspace", container.path]
-    : ["-project", container.path];
+    ? [
+      "-workspace", // Build/open settings from this Xcode workspace.
+      container.path,
+    ]
+    : [
+      "-project", // Build/open settings from this Xcode project.
+      container.path,
+    ];
 }
 
 export async function defaultDerivedDataPath(cwd = Deno.cwd()): Promise<string> {

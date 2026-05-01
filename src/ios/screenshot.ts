@@ -18,7 +18,13 @@ export async function captureScreenshot(options: ScreenshotOptions = {}): Promis
 
   const simulator = await resolveSimulator({ sim: options.sim, udid: options.udid });
   await bootSimulator(simulator.udid);
-  await runCapture("xcrun", ["simctl", "io", simulator.udid, "screenshot", output]);
+  await runCapture("xcrun", [
+    "simctl", // Run the Simulator control tool through xcrun.
+    "io", // Use simulator input/output commands.
+    simulator.udid,
+    "screenshot", // Capture the simulator screen.
+    output,
+  ]);
 
   await displayScreenshot(output, options.display ?? "none");
   return output;
@@ -27,24 +33,36 @@ export async function captureScreenshot(options: ScreenshotOptions = {}): Promis
 export async function displayScreenshot(path: string, display: ScreenshotDisplay): Promise<void> {
   if (display === "none") return;
   if (display === "open") {
-    await runCapture("open", [path]);
+    await runCapture("open", [
+      path, // Ask macOS to open the screenshot with the default image viewer.
+    ]);
     return;
   }
 
   if (await executableExists("viu")) {
-    await runInherit("viu", [path]);
+    await runInherit("viu", [
+      path, // Render the screenshot inline with viu.
+    ]);
     return;
   }
   if (await executableExists("kitten")) {
-    await runInherit("kitten", ["icat", path]);
+    await runInherit("kitten", [
+      "icat", // Render an inline image using Kitty's image protocol.
+      path,
+    ]);
     return;
   }
   if (await executableExists("imgcat")) {
-    await runInherit("imgcat", [path]);
+    await runInherit("imgcat", [
+      path, // Render the screenshot inline with iTerm's imgcat helper.
+    ]);
     return;
   }
   if (await executableExists("wezterm")) {
-    await runInherit("wezterm", ["imgcat", path]);
+    await runInherit("wezterm", [
+      "imgcat", // Render an inline image using WezTerm's imgcat command.
+      path,
+    ]);
     return;
   }
   if (Deno.env.get("TERM_PROGRAM") === "iTerm.app") {

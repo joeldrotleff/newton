@@ -1,9 +1,8 @@
 import { containerArgs, defaultDerivedDataPath, XcodeContainer } from "./project.ts";
 import { IOSDevice } from "./device.ts";
 import { SimulatorDevice } from "./simulator.ts";
-import { runCapture, runInherit, runPipe } from "../util/process.ts";
+import { runCapture, runInherit, runPipe, runStreamingLines } from "../util/process.ts";
 import { BuildLogger, getTimestampedLogPath } from "../util/spinner.ts";
-import { fail } from "../util/errors.ts";
 
 export interface BuildOptions {
   container: XcodeContainer;
@@ -37,36 +36,36 @@ export async function build(options: BuildOptions): Promise<void> {
     return;
   }
 
-  // Normal mode: capture to log file + show spinner with phase updates
+  const startedAt = performance.now();
   const logPath = getTimestampedLogPath();
   const logger = new BuildLogger(logPath);
   await logger.init();
   logger.startSpinner();
 
   try {
-    const result = await runCapture("xcodebuild", args, { check: false });
+    const result = await runStreamingLines(
+      "xcodebuild",
+      args,
+      async ({ text }) => await logger.writeLine(text),
+      { check: false },
+    );
 
-    // Parse output line-by-line to extract phases and write to log
-    const allLines = (result.stdout + (result.stderr ? result.stderr : "")).split("\n");
-    for (const line of allLines) {
-      await logger.writeLine(line);
-    }
-
+    logger.finishCurrent(result.code === 0);
     logger.stopSpinner();
+    const summary = logger.getSummary();
+    const elapsed = formatDuration(performance.now() - startedAt);
 
     if (result.code !== 0) {
-      // Extract last meaningful line as error message
-      const lines = allLines.filter((l) => l.trim());
-      const errorLine = lines.find((l) => l.includes("error:")) || lines[lines.length - 1] ||
-        "Build failed";
+      const errorLine = summary.firstError || summary.lastError || "Build failed";
 
-      console.error(`\n❌ Build failed\n`);
+      console.error(`\n❌ Build failed in ${elapsed}`);
       console.error(`Error: ${errorLine}`);
+      console.error(formatBuildSummary(summary));
       console.error(`\nFull build log: ${logPath}\n`);
       Deno.exit(result.code);
     }
 
-    console.log(`✓ Build succeeded\n`);
+    console.log(`✓ Build succeeded in ${elapsed}${formatBuildSummary(summary)}\n`);
   } finally {
     await logger.close();
   }
@@ -84,7 +83,6 @@ export function buildArgs(options: BuildOptions): string[] {
     options.derivedData ?? ".newton/DerivedData",
     "-resolvePackageDependencies", // Resolve SPM package dependencies before building.
     "-parallelizeTargets", // Let xcodebuild build independent targets concurrently.
-    ...(options.verbose ? [] : ["-quiet"]), // Hide normal xcodebuild output unless requested.
     ...configurationArgs(options.configuration),
     "ONLY_ACTIVE_ARCH=YES", // Build only the selected destination architecture for faster local runs.
     ...(options.target === "sim" ? ["CODE_SIGN_IDENTITY=-"] : []), // Simulators do not need code signing.
@@ -94,6 +92,24 @@ export function buildArgs(options: BuildOptions): string[] {
 
 function configurationArgs(configuration?: string): string[] {
   return configuration ? ["-configuration", configuration] : [];
+}
+
+function formatDuration(milliseconds: number): string {
+  return `${(milliseconds / 1_000).toFixed(1)}s`;
+}
+
+function formatBuildSummary(summary: {
+  compiledFiles: number;
+  warnings: number;
+  errors: number;
+  packages: number;
+}): string {
+  const parts = [];
+  if (summary.compiledFiles > 0) parts.push(`${summary.compiledFiles} files`);
+  if (summary.warnings > 0) parts.push(`${summary.warnings} warnings`);
+  if (summary.errors > 0) parts.push(`${summary.errors} errors`);
+  if (summary.packages > 0) parts.push(`${summary.packages} packages`);
+  return parts.length ? ` · ${parts.join(" · ")}` : "";
 }
 
 export async function showBuildSettings(options: BuildOptions): Promise<any[]> {

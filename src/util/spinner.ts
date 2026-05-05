@@ -1,5 +1,9 @@
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const FRAME_INTERVAL = 80; // ms between frames
+const HIDE_CURSOR = "\x1b[?25l";
+const SHOW_CURSOR = "\x1b[?25h";
+const CLEAR_LINE = "\r\x1b[K";
+const encoder = new TextEncoder();
 
 function extractPhase(line: string): string | null {
   // Parse xcodebuild output to extract current build phase
@@ -31,6 +35,7 @@ export class BuildLogger {
   private lastPhase = "";
   private logFile: string;
   private logHandle: Deno.FsFile | null = null;
+  private cursorHidden = false;
 
   constructor(logFile: string) {
     this.logFile = logFile;
@@ -53,7 +58,6 @@ export class BuildLogger {
 
   async writeLine(line: string): Promise<void> {
     if (this.logHandle) {
-      const encoder = new TextEncoder();
       await this.logHandle.write(encoder.encode(line + "\n"));
     }
 
@@ -72,15 +76,24 @@ export class BuildLogger {
 
   private updateSpinner(): void {
     // Clear previous spinner line
-    Deno.stdout.writeSync(new TextEncoder().encode("\r\x1b[K"));
+    Deno.stdout.writeSync(encoder.encode(CLEAR_LINE));
 
     // Write new spinner line
     const frame = SPINNER_FRAMES[this.frameIndex % SPINNER_FRAMES.length];
     const message = this.currentStatus ? `${frame} ${this.currentStatus}` : frame;
-    Deno.stdout.writeSync(new TextEncoder().encode(message));
+    Deno.stdout.writeSync(encoder.encode(message));
   }
 
   startSpinner(): void {
+    if (this.spinnerTimer !== undefined) {
+      return;
+    }
+
+    if (Deno.stdout.isTerminal()) {
+      Deno.stdout.writeSync(encoder.encode(HIDE_CURSOR));
+      this.cursorHidden = true;
+    }
+
     this.spinnerTimer = setInterval(() => {
       this.frameIndex++;
       this.updateSpinner();
@@ -92,8 +105,10 @@ export class BuildLogger {
       clearInterval(this.spinnerTimer);
       this.spinnerTimer = undefined;
     }
-    // Clear spinner line
-    Deno.stdout.writeSync(new TextEncoder().encode("\r\x1b[K"));
+
+    const output = this.cursorHidden ? `${CLEAR_LINE}${SHOW_CURSOR}` : CLEAR_LINE;
+    Deno.stdout.writeSync(encoder.encode(output));
+    this.cursorHidden = false;
   }
 
   async close(): Promise<void> {

@@ -54,7 +54,7 @@ export async function runOptionsFromFlags(flags: CliFlags): Promise<RunOptions> 
     project: stringFlag(flags, "project") ?? config.project,
     workspace: stringFlag(flags, "workspace") ?? config.workspace,
     target: (stringFlag(flags, "target") as "sim" | "device" | undefined) ?? "sim",
-    configuration: stringFlag(flags, "configuration") ?? "Debug",
+    configuration: stringFlag(flags, "configuration") ?? config.configuration,
     derivedData: stringFlag(flags, "derived-data"),
     sim: stringFlag(flags, "sim") ?? config.preferredSimulator,
     udid: stringFlag(flags, "udid"),

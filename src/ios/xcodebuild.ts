@@ -30,7 +30,7 @@ export function buildDestination(options: Pick<BuildOptions, "destination" | "ta
 
 export async function build(options: BuildOptions): Promise<void> {
   const args = buildArgs(options);
-  
+
   if (options.verbose) {
     // Verbose mode: pipe output directly to console
     await runInherit("xcodebuild", args);
@@ -56,9 +56,10 @@ export async function build(options: BuildOptions): Promise<void> {
 
     if (result.code !== 0) {
       // Extract last meaningful line as error message
-      const lines = allLines.filter(l => l.trim());
-      const errorLine = lines.find(l => l.includes("error:")) || lines[lines.length - 1] || "Build failed";
-      
+      const lines = allLines.filter((l) => l.trim());
+      const errorLine = lines.find((l) => l.includes("error:")) || lines[lines.length - 1] ||
+        "Build failed";
+
       console.error(`\n❌ Build failed\n`);
       console.error(`Error: ${errorLine}`);
       console.error(`\nFull build log: ${logPath}\n`);
@@ -84,12 +85,15 @@ export function buildArgs(options: BuildOptions): string[] {
     "-resolvePackageDependencies", // Resolve SPM package dependencies before building.
     "-parallelizeTargets", // Let xcodebuild build independent targets concurrently.
     ...(options.verbose ? [] : ["-quiet"]), // Hide normal xcodebuild output unless requested.
-    "-configuration", // Debug/Release or another project-defined configuration.
-    options.configuration ?? "Debug",
+    ...configurationArgs(options.configuration),
     "ONLY_ACTIVE_ARCH=YES", // Build only the selected destination architecture for faster local runs.
     ...(options.target === "sim" ? ["CODE_SIGN_IDENTITY=-"] : []), // Simulators do not need code signing.
     ...actions,
   ];
+}
+
+function configurationArgs(configuration?: string): string[] {
+  return configuration ? ["-configuration", configuration] : [];
 }
 
 export async function showBuildSettings(options: BuildOptions): Promise<any[]> {
@@ -101,8 +105,7 @@ export async function showBuildSettings(options: BuildOptions): Promise<any[]> {
     buildDestination(options),
     "-derivedDataPath", // Use Newton's derived data location when resolving build products.
     options.derivedData ?? ".newton/DerivedData",
-    "-configuration", // Read settings for the selected build configuration.
-    options.configuration ?? "Debug",
+    ...configurationArgs(options.configuration),
     "-showBuildSettings", // Print target build settings instead of building.
     "-json", // Emit machine-readable settings.
   ]);

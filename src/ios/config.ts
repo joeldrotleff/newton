@@ -10,6 +10,7 @@ export interface NewtonConfig {
   scheme?: string;
   project?: string;
   workspace?: string;
+  configuration?: string;
   preferredSimulator?: string;
 }
 

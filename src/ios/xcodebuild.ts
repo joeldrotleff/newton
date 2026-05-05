@@ -49,6 +49,7 @@ export function buildArgs(options: BuildOptions): string[] {
     buildDestination(options),
     "-derivedDataPath", // Keep build products in Newton's local derived data folder.
     options.derivedData ?? ".newton/DerivedData",
+    "-resolvePackageDependencies", // Resolve SPM package dependencies before building.
     "-parallelizeTargets", // Let xcodebuild build independent targets concurrently.
     ...(options.verbose ? [] : ["-quiet"]), // Hide normal xcodebuild output unless requested.
     "-configuration", // Debug/Release or another project-defined configuration.

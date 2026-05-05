@@ -51,7 +51,10 @@ async function collectContainers(
       if (!entry.isDirectory || ignored.has(entry.name)) continue;
       const path = join(dir, entry.name);
       if (entry.name.endsWith(".xcworkspace")) {
-        workspaces.push(path);
+        // Skip SPM-generated workspaces (.swiftpm/xcode/package.xcworkspace)
+        if (!path.includes(".swiftpm")) {
+          workspaces.push(path);
+        }
         continue;
       }
       if (entry.name.endsWith(".xcodeproj")) {

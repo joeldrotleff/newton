@@ -218,3 +218,55 @@ export async function launchSimulatorApp(
     ]);
   }
 }
+
+export async function deleteUnavailableSimulators(): Promise<void> {
+  await runCapture("xcrun", [
+    "simctl", // Run the Simulator control tool through xcrun.
+    "delete", // Delete simulator(s).
+    "unavailable", // Target only unavailable simulators (orphaned devices).
+  ]);
+}
+
+export interface SimulatorDeleteFailure {
+  device: SimulatorDevice;
+  error: string;
+}
+
+export interface SimulatorDeleteResult {
+  deleted: number;
+  failed: SimulatorDeleteFailure[];
+}
+
+export async function deleteSimulatorsByRuntime(runtimeVersion: string): Promise<SimulatorDeleteResult> {
+  const devices = await listSimulators();
+  const toDelete = devices.filter((device) => device.runtimeVersion === runtimeVersion);
+  const failed: SimulatorDeleteFailure[] = [];
+  let deleted = 0;
+
+  for (const device of toDelete) {
+    if (device.state === "Booted") {
+      await runCapture("xcrun", [
+        "simctl", // Run the Simulator control tool through xcrun.
+        "shutdown", // Stop booted simulators before deleting them.
+        device.udid,
+      ], { check: false });
+    }
+
+    const result = await runCapture("xcrun", [
+      "simctl", // Run the Simulator control tool through xcrun.
+      "delete", // Delete simulator(s).
+      device.udid, // Delete by UDID.
+    ], { check: false });
+
+    if (result.code === 0) {
+      deleted += 1;
+    } else {
+      failed.push({
+        device,
+        error: (result.stderr || result.stdout).trim(),
+      });
+    }
+  }
+
+  return { deleted, failed };
+}

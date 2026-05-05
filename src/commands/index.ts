@@ -1,6 +1,7 @@
 import { CliFlags } from "../cli/flags.ts";
 import { fail } from "../util/errors.ts";
 import { buildCommand } from "./build.ts";
+import { cleanSimsCommand } from "./clean-sims.ts";
 import { createCommand } from "./create.ts";
 import { devicesCommand } from "./devices.ts";
 import { initCommand } from "./init.ts";
@@ -20,6 +21,8 @@ export async function handleCommand(command: string, flags: CliFlags): Promise<v
       return createCommand(flags);
     case "sims":
       return simsCommand(flags);
+    case "clean-sims":
+      return cleanSimsCommand(flags);
     case "devices":
       return devicesCommand();
     case "teams":
@@ -37,6 +40,6 @@ export async function handleCommand(command: string, flags: CliFlags): Promise<v
     case "lsp":
       return lspCommand(flags);
     default:
-      fail("Usage: newton <create|sims|devices|teams|open|build|run|screenshot|preview|lsp>");
+      fail("Usage: newton <create|sims|clean-sims|devices|teams|open|build|run|screenshot|preview|lsp>");
   }
 }

@@ -5,6 +5,7 @@ Usage:
   newton init [--force]
   newton create <name> [--output path] [--bundle-id id] [--team-id id|--no-team]
   newton sims [--idiom iphone|ipad] [--app-store iphone|ipad]
+  newton clean-sims [--runtime version]
   newton devices
   newton teams
   newton open [--project path|--workspace path]

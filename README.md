@@ -118,13 +118,28 @@ newton sims --app-store ipad
 Lists available iOS simulators, marks Newton's default selection, and marks App Store
 screenshot-compatible devices.
 
-### Devices
+### Clean simulators
+
+```sh
+newton clean-sims
+newton clean-sims --runtime 18.0
+newton clean-sims --runtime 26.1
+```
+
+Deletes iOS simulators. Without `--runtime`, deletes all unavailable (orphaned) simulators — these
+become unavailable when their iOS runtime is no longer installed, typically after upgrading Xcode.
+
+With `--runtime`, deletes all simulators for the specified iOS version. Useful for freeing disk space
+when migrating to a new OS version. Run this as your normal user, not with `sudo`; if CoreSimulator
+reports permission errors, fix ownership of `~/Library/Developer/CoreSimulator` and retry.
+
+### Devices (connected)
 
 ```sh
 newton devices
 ```
 
-Lists connected iPhone/iPad devices detected by `xcrun devicectl`.
+Lists connected (physical) iPhone/iPad devices detected by `xcrun devicectl`.
 
 ### Signing teams
 

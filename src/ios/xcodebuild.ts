@@ -2,6 +2,8 @@ import { containerArgs, defaultDerivedDataPath, XcodeContainer } from "./project
 import { IOSDevice } from "./device.ts";
 import { SimulatorDevice } from "./simulator.ts";
 import { runCapture, runInherit, runPipe } from "../util/process.ts";
+import { BuildLogger, getTimestampedLogPath } from "../util/spinner.ts";
+import { fail } from "../util/errors.ts";
 
 export interface BuildOptions {
   container: XcodeContainer;
@@ -28,14 +30,42 @@ export function buildDestination(options: Pick<BuildOptions, "destination" | "ta
 
 export async function build(options: BuildOptions): Promise<void> {
   const args = buildArgs(options);
-  if (options.verbose) await runInherit("xcodebuild", args);
-  else {
+  
+  if (options.verbose) {
+    // Verbose mode: pipe output directly to console
+    await runInherit("xcodebuild", args);
+    return;
+  }
+
+  // Normal mode: capture to log file + show spinner
+  const logPath = getTimestampedLogPath();
+  const logger = new BuildLogger(logPath);
+  await logger.init();
+  logger.startSpinner();
+
+  try {
     const result = await runCapture("xcodebuild", args, { check: false });
+
+    // Write all output to log file
+    await logger.writeLine(result.stdout);
+    if (result.stderr) await logger.writeLine(result.stderr);
+
+    logger.stopSpinner();
+
     if (result.code !== 0) {
-      console.error(result.stdout);
-      console.error(result.stderr);
+      // Extract last meaningful line as error message
+      const lines = result.stdout.split("\n").filter(l => l.trim());
+      const errorLine = lines.find(l => l.includes("error:")) || lines[lines.length - 1] || "Build failed";
+      
+      console.error(`\n❌ Build failed\n`);
+      console.error(`Error: ${errorLine}`);
+      console.error(`\nFull build log: ${logPath}\n`);
       Deno.exit(result.code);
     }
+
+    console.log(`✓ Build succeeded\n`);
+  } finally {
+    await logger.close();
   }
 }
 

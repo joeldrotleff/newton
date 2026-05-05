@@ -37,7 +37,7 @@ export async function build(options: BuildOptions): Promise<void> {
     return;
   }
 
-  // Normal mode: capture to log file + show spinner
+  // Normal mode: capture to log file + show spinner with phase updates
   const logPath = getTimestampedLogPath();
   const logger = new BuildLogger(logPath);
   await logger.init();
@@ -46,15 +46,17 @@ export async function build(options: BuildOptions): Promise<void> {
   try {
     const result = await runCapture("xcodebuild", args, { check: false });
 
-    // Write all output to log file
-    await logger.writeLine(result.stdout);
-    if (result.stderr) await logger.writeLine(result.stderr);
+    // Parse output line-by-line to extract phases and write to log
+    const allLines = (result.stdout + (result.stderr ? result.stderr : "")).split("\n");
+    for (const line of allLines) {
+      await logger.writeLine(line);
+    }
 
     logger.stopSpinner();
 
     if (result.code !== 0) {
       // Extract last meaningful line as error message
-      const lines = result.stdout.split("\n").filter(l => l.trim());
+      const lines = allLines.filter(l => l.trim());
       const errorLine = lines.find(l => l.includes("error:")) || lines[lines.length - 1] || "Build failed";
       
       console.error(`\n❌ Build failed\n`);

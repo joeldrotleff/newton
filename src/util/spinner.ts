@@ -1,10 +1,34 @@
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const FRAME_INTERVAL = 80; // ms between frames
 
+function extractPhase(line: string): string | null {
+  // Parse xcodebuild output to extract current build phase
+  if (line.includes("Resolve Package Graph") || line.includes("Updating from")) {
+    return "Resolving packages";
+  }
+  if (line.includes("Checking out") || line.includes("Creating working copy")) {
+    return "Resolving packages";
+  }
+  if (line.includes("Resolved source packages") || line.includes("resolved source packages")) {
+    return "Preparing build";
+  }
+  if (line.includes("Building for iOS") || line.includes("Building for macOS")) {
+    return "Building";
+  }
+  if (line.includes("Compiling") || line.includes("Linking")) {
+    return "Compiling";
+  }
+  if (line.includes("Build complete!")) {
+    return "Build complete";
+  }
+  return null;
+}
+
 export class BuildLogger {
   private spinnerTimer: number | undefined;
   private frameIndex = 0;
   private currentStatus = "";
+  private lastPhase = "";
   private logFile: string;
   private logHandle: Deno.FsFile | null = null;
 
@@ -31,6 +55,13 @@ export class BuildLogger {
     if (this.logHandle) {
       const encoder = new TextEncoder();
       await this.logHandle.write(encoder.encode(line + "\n"));
+    }
+
+    // Try to extract phase from this line
+    const phase = extractPhase(line);
+    if (phase && phase !== this.lastPhase) {
+      this.lastPhase = phase;
+      this.setStatus(phase + "...");
     }
   }
 

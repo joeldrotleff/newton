@@ -26,7 +26,7 @@ export async function writeInitialConfig(options: { force?: boolean } = {}): Pro
 
   const container = await discoverProject();
   const schemes = await listSchemes(container);
-  const scheme = chooseScheme(container, schemes);
+  const scheme = await chooseScheme(container, schemes);
   const simulator = await resolveSimulator();
 
   const config: NewtonConfig = {
@@ -65,13 +65,37 @@ export async function listSchemes(container: XcodeContainer): Promise<string[]> 
   return json.project?.schemes ?? json.workspace?.schemes ?? [];
 }
 
-function chooseScheme(container: XcodeContainer, schemes: string[]): string {
+async function chooseScheme(container: XcodeContainer, schemes: string[]): Promise<string> {
   if (schemes.length === 0) fail("No Xcode schemes found for this project/workspace.");
   if (schemes.length === 1) return schemes[0];
 
   const basename = container.path.split("/").at(-1)?.replace(/\.(xcodeproj|xcworkspace)$/, "");
   const matching = schemes.find((scheme) => scheme === basename);
-  return matching ?? schemes[0];
+  if (matching) return matching;
+
+  // Multiple schemes, no match on basename — prompt user to pick
+  console.log("Multiple Xcode schemes found:");
+  schemes.forEach((scheme, index) => {
+    console.log(`  ${index + 1}) ${scheme}`);
+  });
+
+  while (true) {
+    const answer = await readLine(`Select a scheme [1-${schemes.length}]: `);
+    if (answer === null) fail("No scheme selected.");
+    const choice = Number(answer.trim());
+    if (Number.isInteger(choice) && choice >= 1 && choice <= schemes.length) {
+      return schemes[choice - 1];
+    }
+    console.log(`Enter a number from 1 to ${schemes.length}.`);
+  }
+}
+
+async function readLine(message: string): Promise<string | null> {
+  await Deno.stdout.write(new TextEncoder().encode(message));
+  const buffer = new Uint8Array(1024);
+  const bytesRead = await Deno.stdin.read(buffer);
+  if (bytesRead === null) return null;
+  return new TextDecoder().decode(buffer.subarray(0, bytesRead)).split(/\r?\n/, 1)[0];
 }
 
 export async function ensureInitGitignoreEntries(): Promise<void> {

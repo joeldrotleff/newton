@@ -1,101 +1,93 @@
-import { booleanFlag, CliFlags, stringFlag, stringListFlag } from "../cli/flags.ts";
 import { loadConfig } from "../ios/config.ts";
 import { RunOptions } from "../ios/run.ts";
 import { ScreenshotDisplay } from "../ios/screenshot.ts";
 
+// Cliffy converts kebab-case flags (e.g. --bundle-id) to camelCase keys (bundleId).
+// These option types describe what each subcommand's `.action()` receives.
+
 export interface InitCommandOptions {
-  force: boolean;
+  force?: boolean;
 }
 
 export interface CreateCommandOptions {
-  name?: string;
   output?: string;
   bundleId?: string;
   teamId?: string;
-  noTeam: boolean;
+  team?: boolean; // false when --no-team is passed; cliffy default true
 }
 
-export interface ScreenshotCommandOptions {
+export interface RunCliOptions {
+  scheme?: string;
+  project?: string;
+  workspace?: string;
+  target?: "sim" | "device";
+  configuration?: string;
+  derivedData?: string;
+  sim?: string;
+  udid?: string;
+  idiom?: "iphone" | "ipad";
+  appStore?: "iphone" | "ipad";
+  device?: string;
+  logs?: boolean;
+  logLevel?: string;
+  logFilter?: string;
+  appArg?: string[];
+  verbose?: boolean;
+}
+
+export interface ScreenshotCliOptions {
   output?: string;
-  display: ScreenshotDisplay;
+  display?: ScreenshotDisplay;
   sim?: string;
   udid?: string;
 }
 
-export interface PreviewCommandOptions extends ScreenshotCommandOptions {
-  name?: string;
-  delaySeconds: number;
-  appArgs: string[];
-  logs: boolean;
+export interface PreviewCliOptions extends RunCliOptions, ScreenshotCliOptions {
+  delay?: number;
 }
 
-export interface LspCommandOptions extends RunOptions {
+export interface LspCliOptions extends RunCliOptions {
   sourceRoot?: string;
 }
 
-export function initOptionsFromFlags(flags: CliFlags): InitCommandOptions {
-  return { force: Boolean(flags.force) };
+export interface SimsCliOptions {
+  idiom?: "iphone" | "ipad";
+  appStore?: "iphone" | "ipad";
 }
 
-export function createOptionsFromFlags(flags: CliFlags): CreateCommandOptions {
-  return {
-    name: stringFlag(flags, "_arg0"),
-    output: stringFlag(flags, "output"),
-    bundleId: stringFlag(flags, "bundle-id"),
-    teamId: stringFlag(flags, "team-id"),
-    noTeam: Boolean(flags["no-team"]),
-  };
+export interface CleanSimsCliOptions {
+  runtime?: string;
 }
 
-export async function runOptionsFromFlags(flags: CliFlags): Promise<RunOptions> {
+// Resolves run options by layering CLI flags over the project's newton.json defaults.
+export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions> {
   const config = await loadConfig();
   return {
-    scheme: stringFlag(flags, "scheme") ?? config.scheme,
-    project: stringFlag(flags, "project") ?? config.project,
-    workspace: stringFlag(flags, "workspace") ?? config.workspace,
-    target: (stringFlag(flags, "target") as "sim" | "device" | undefined) ?? "sim",
-    configuration: stringFlag(flags, "configuration") ?? config.configuration,
-    derivedData: stringFlag(flags, "derived-data"),
-    sim: stringFlag(flags, "sim") ?? config.preferredSimulator,
-    udid: stringFlag(flags, "udid"),
-    idiom: stringFlag(flags, "idiom") as "iphone" | "ipad" | undefined,
-    appStore: stringFlag(flags, "app-store") as "iphone" | "ipad" | undefined,
-    device: stringFlag(flags, "device"),
-    logs: booleanFlag(flags, "logs"),
-    logLevel: stringFlag(flags, "log-level"),
-    logFilter: stringFlag(flags, "log-filter"),
-    appArgs: stringListFlag(flags, "app-arg"),
-    verbose: Boolean(flags.verbose),
+    scheme: opts.scheme ?? config.scheme,
+    project: opts.project ?? config.project,
+    workspace: opts.workspace ?? config.workspace,
+    target: opts.target ?? "sim",
+    configuration: opts.configuration ?? config.configuration,
+    derivedData: opts.derivedData,
+    sim: opts.sim ?? config.preferredSimulator,
+    udid: opts.udid,
+    idiom: opts.idiom,
+    appStore: opts.appStore,
+    device: opts.device,
+    logs: opts.logs,
+    logLevel: opts.logLevel,
+    logFilter: opts.logFilter,
+    appArgs: opts.appArg ?? [],
+    verbose: opts.verbose ?? false,
   };
 }
 
-export async function screenshotOptionsFromFlags(
-  flags: CliFlags,
-): Promise<ScreenshotCommandOptions> {
+export async function resolveScreenshotOptions(opts: ScreenshotCliOptions) {
   const config = await loadConfig();
   return {
-    output: stringFlag(flags, "output"),
-    display: (stringFlag(flags, "display") as ScreenshotDisplay | undefined) ?? "none",
-    sim: stringFlag(flags, "sim") ?? config.preferredSimulator,
-    udid: stringFlag(flags, "udid"),
-  };
-}
-
-export async function previewOptionsFromFlags(flags: CliFlags): Promise<PreviewCommandOptions> {
-  const screenshot = await screenshotOptionsFromFlags(flags);
-  return {
-    ...screenshot,
-    name: stringFlag(flags, "_arg0"),
-    display: (stringFlag(flags, "display") as ScreenshotDisplay | undefined) ?? "inline",
-    delaySeconds: Number(stringFlag(flags, "delay") ?? "2"),
-    appArgs: stringListFlag(flags, "app-arg"),
-    logs: booleanFlag(flags, "logs") ?? false,
-  };
-}
-
-export async function lspOptionsFromFlags(flags: CliFlags): Promise<LspCommandOptions> {
-  return {
-    ...await runOptionsFromFlags(flags),
-    sourceRoot: stringFlag(flags, "source-root"),
+    output: opts.output,
+    display: opts.display ?? "none" as const,
+    sim: opts.sim ?? config.preferredSimulator,
+    udid: opts.udid,
   };
 }

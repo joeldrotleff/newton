@@ -1,15 +1,14 @@
-import { CliFlags } from "../cli/flags.ts";
 import { bootSimulator, resolveSimulator } from "../ios/simulator.ts";
 import { discoverProject } from "../ios/project.ts";
 import { resolveDerivedData, runLspBuild } from "../ios/xcodebuild.ts";
 import { fail } from "../util/errors.ts";
 import { join } from "../util/paths.ts";
 import { executableExists, runCapture } from "../util/process.ts";
-import { lspOptionsFromFlags } from "./options.ts";
+import { LspCliOptions, resolveRunOptions } from "./options.ts";
 
 // Generates SourceKit-LSP support files via xcode-build-server.
-export async function lspCommand(flags: CliFlags): Promise<void> {
-  const options = await lspOptionsFromFlags(flags);
+export async function lspCommand(opts: LspCliOptions): Promise<void> {
+  const options = await resolveRunOptions(opts);
   if (!options.scheme) fail("Missing required --scheme <name>.");
   if (!await executableExists("xcode-build-server")) {
     fail("Missing xcode-build-server. Install it with:\n  brew install xcode-build-server");
@@ -47,9 +46,9 @@ export async function lspCommand(flags: CliFlags): Promise<void> {
     derivedData,
   });
 
-  if (options.sourceRoot) {
-    await Deno.copyFile("buildServer.json", join(options.sourceRoot, "buildServer.json"));
-    await Deno.copyFile(".compile", join(options.sourceRoot, ".compile"));
+  if (opts.sourceRoot) {
+    await Deno.copyFile("buildServer.json", join(opts.sourceRoot, "buildServer.json"));
+    await Deno.copyFile(".compile", join(opts.sourceRoot, ".compile"));
   }
 
   console.log("Generated buildServer.json and .compile for SourceKit-LSP.");

@@ -1,14 +1,13 @@
-import { CliFlags } from "../cli/flags.ts";
 import { resolveDevice } from "../ios/device.ts";
 import { discoverProject } from "../ios/project.ts";
 import { resolveSimulator } from "../ios/simulator.ts";
 import { build, resolveDerivedData } from "../ios/xcodebuild.ts";
 import { fail } from "../util/errors.ts";
-import { runOptionsFromFlags } from "./options.ts";
+import { resolveRunOptions, RunCliOptions } from "./options.ts";
 
 // Builds the selected scheme for a simulator or connected device.
-export async function buildCommand(flags: CliFlags): Promise<void> {
-  const options = await runOptionsFromFlags(flags);
+export async function buildCommand(opts: RunCliOptions): Promise<void> {
+  const options = await resolveRunOptions(opts);
   if (!options.scheme) fail("Missing required --scheme <name>.");
 
   const target = options.target ?? "sim";

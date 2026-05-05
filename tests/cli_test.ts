@@ -1,27 +1,43 @@
-import { assertEquals } from "@std/assert";
-import { parseCli, parseFlags } from "../src/cli.ts";
+import { assertEquals, assertStringIncludes } from "@std/assert";
+import { buildCli } from "../src/cli.ts";
 
-Deno.test("parseCli treats iOS commands as top-level commands", () => {
-  const parsed = parseCli(["preview", "metricCards", "--scheme", "Axion"]);
+Deno.test("buildCli registers all top-level subcommands", () => {
+  const cli = buildCli();
+  const names = cli.getCommands().map((c) => c.getName()).sort();
 
-  assertEquals(parsed.command, "preview");
-  assertEquals(parsed.flags._arg0, "metricCards");
-  assertEquals(parsed.flags.scheme, "Axion");
+  assertEquals(names, [
+    "build",
+    "clean-sims",
+    "completions",
+    "create",
+    "devices",
+    "help",
+    "init",
+    "lsp",
+    "open",
+    "preview",
+    "run",
+    "screenshot",
+    "sims",
+    "teams",
+  ]);
 });
 
-Deno.test("parseFlags handles repeated app args and booleans", () => {
-  const parsed = parseFlags([
-    "metricCards",
-    "--scheme",
-    "Axion",
-    "--no-logs",
-    "--app-arg",
-    "-SomeFlag",
-    "--app-arg=value",
-  ]);
+Deno.test("preview subcommand declares scheme, display, delay, and app-arg options", () => {
+  const preview = buildCli().getCommand("preview");
+  if (!preview) throw new Error("preview command not found");
 
-  assertEquals(parsed.positional, ["metricCards"]);
-  assertEquals(parsed.flags.scheme, "Axion");
-  assertEquals(parsed.flags["no-logs"], true);
-  assertEquals(parsed.flags["app-arg"], ["-SomeFlag", "value"]);
+  const optionNames = preview.getOptions().map((o) => o.name);
+  for (const flag of ["scheme", "display", "delay", "app-arg", "logs"]) {
+    assertEquals(
+      optionNames.includes(flag),
+      true,
+      `expected --${flag} on 'preview', got: ${optionNames.join(", ")}`,
+    );
+  }
+});
+
+Deno.test("top-level help mentions newton", () => {
+  const help = buildCli().getHelp();
+  assertStringIncludes(help, "newton");
 });

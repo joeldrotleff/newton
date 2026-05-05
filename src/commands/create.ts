@@ -1,23 +1,16 @@
-import { CliFlags } from "../cli/flags.ts";
 import { createProject } from "../ios/create.ts";
 import { chooseDevelopmentTeam } from "../ios/signing.ts";
-import { fail } from "../util/errors.ts";
-import { createOptionsFromFlags } from "./options.ts";
+import { CreateCommandOptions } from "./options.ts";
 
 // Creates a starter SwiftUI iOS project and writes its Newton config.
-export async function createCommand(flags: CliFlags): Promise<void> {
-  const options = createOptionsFromFlags(flags);
-  if (!options.name) {
-    fail(
-      "Usage: newton create <name> [--output path] [--bundle-id id] [--team-id id|--no-team]",
-    );
-  }
-
-  const teamId = options.noTeam ? undefined : options.teamId ?? await chooseDevelopmentTeam();
+export async function createCommand(name: string, opts: CreateCommandOptions): Promise<void> {
+  // cliffy maps `--no-team` to `team: false`; default is undefined/true.
+  const noTeam = opts.team === false;
+  const teamId = noTeam ? undefined : opts.teamId ?? await chooseDevelopmentTeam();
   const config = await createProject({
-    name: options.name,
-    output: options.output,
-    bundleId: options.bundleId,
+    name,
+    output: opts.output,
+    bundleId: opts.bundleId,
     teamId,
   });
 

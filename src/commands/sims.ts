@@ -1,25 +1,26 @@
-import { CliFlags, stringFlag } from "../cli/flags.ts";
-import { printTable } from "../cli/table.ts";
+import { Table } from "@cliffy/table";
 import { isAppStoreCompatible, listSimulators, resolveSimulator } from "../ios/simulator.ts";
+import { SimsCliOptions } from "./options.ts";
 
 // Lists installed iOS simulators and marks Newton's default choice.
-export async function simsCommand(flags: CliFlags): Promise<void> {
-  const idiom = stringFlag(flags, "app-store") ?? stringFlag(flags, "idiom") ?? "iphone";
+export async function simsCommand(opts: SimsCliOptions): Promise<void> {
+  const idiom = opts.appStore ?? opts.idiom ?? "iphone";
   const devices = await listSimulators();
   const selected = await resolveSimulator({
-    idiom: idiom as "iphone" | "ipad",
-    appStore: stringFlag(flags, "app-store") as any,
+    idiom,
+    appStore: opts.appStore,
   }).catch(() => undefined);
 
-  printTable(
-    ["Default", "App Store", "Name", "Runtime", "UDID", "State"],
-    devices.map((device) => [
+  new Table()
+    .header(["Default", "App Store", "Name", "Runtime", "UDID", "State"])
+    .body(devices.map((device) => [
       selected?.udid === device.udid ? "*" : "",
       isAppStoreCompatible(device) ? "yes" : "",
       device.name,
       device.runtimeVersion,
       device.udid,
       device.state,
-    ]),
-  );
+    ]))
+    .padding(2)
+    .render();
 }

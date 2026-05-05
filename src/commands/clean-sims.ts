@@ -1,9 +1,12 @@
-import { CliFlags, stringFlag } from "../cli/flags.ts";
-import { deleteUnavailableSimulators, deleteSimulatorsByRuntime } from "../ios/simulator.ts";
+import {
+  deleteSimulatorsByRuntime,
+  deleteUnavailableSimulators,
+} from "../ios/simulator.ts";
+import { CleanSimsCliOptions } from "./options.ts";
 
 // Deletes iOS simulators: either unavailable (orphaned) or by specific runtime version.
-export async function cleanSimsCommand(flags: CliFlags): Promise<void> {
-  const runtime = stringFlag(flags, "runtime");
+export async function cleanSimsCommand(opts: CleanSimsCliOptions): Promise<void> {
+  const runtime = opts.runtime;
 
   if (runtime) {
     console.log(`Deleting simulators with runtime ${runtime}...`);

@@ -1,30 +1,21 @@
 import { fail } from "../util/errors.ts";
-import { join } from "../util/paths.ts";
+import { exists, join } from "../util/paths.ts";
 import { runCapture } from "../util/process.ts";
-import { findApps } from "./project.ts";
-import { BuildOptions, showBuildSettings } from "./xcodebuild.ts";
+import { BuildOptions, resolveDerivedData } from "./xcodebuild.ts";
 
 export async function locateBuiltApp(options: BuildOptions): Promise<string> {
-  try {
-    const settings = await showBuildSettings(options);
-    for (const target of settings) {
-      const buildSettings = target.buildSettings ?? {};
-      if (buildSettings.TARGET_BUILD_DIR && buildSettings.WRAPPER_NAME?.endsWith(".app")) {
-        return join(buildSettings.TARGET_BUILD_DIR, buildSettings.WRAPPER_NAME);
-      }
-    }
-  } catch {
-    // Fall back to derived data search below.
-  }
-
-  const derivedData = options.derivedData ?? ".newton/DerivedData";
-  const productsDir = join(derivedData, "Build", "Products");
-  const apps = await findApps(productsDir).catch(() => []);
-  const schemeMatch = apps.find((path) => path.endsWith(`/${options.scheme}.app`));
-  if (schemeMatch) return schemeMatch;
-  if (apps.length === 1) return apps[0];
-
-  fail(`Could not locate built .app in ${productsDir}.`);
+  if (!options.appName) fail("Missing appName in newton.json. Run `newton init --force`.");
+  const configuration = options.configuration ?? "Debug";
+  const sdk = options.target === "device" ? "iphoneos" : "iphonesimulator";
+  const appPath = join(
+    resolveDerivedData(options.derivedData),
+    "Build",
+    "Products",
+    `${configuration}-${sdk}`,
+    `${options.appName}.app`,
+  );
+  if (await exists(appPath)) return appPath;
+  fail(`Could not locate built .app at ${appPath}.`);
 }
 
 export async function readBundleId(appPath: string): Promise<string> {

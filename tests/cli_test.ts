@@ -7,6 +7,7 @@ Deno.test("buildCli registers all top-level subcommands", () => {
 
   assertEquals(names, [
     "build",
+    "build-log",
     "clean-sims",
     "completions",
     "create",

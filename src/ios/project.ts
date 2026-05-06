@@ -1,5 +1,5 @@
 import { fail } from "../util/errors.ts";
-import { dirname, exists, join, relative, resolve, walkFiles } from "../util/paths.ts";
+import { dirname, join, relative, resolve, walkFiles } from "../util/paths.ts";
 
 export type XcodeContainer =
   | { kind: "project"; path: string }
@@ -80,8 +80,7 @@ export function containerArgs(container: XcodeContainer): string[] {
     ];
 }
 
-export async function defaultDerivedDataPath(cwd = Deno.cwd()): Promise<string> {
-  if (await exists(join(cwd, "ios"))) return join(cwd, "ios", ".build", "DerivedData");
+export function defaultDerivedDataPath(cwd = Deno.cwd()): string {
   return join(cwd, ".newton", "DerivedData");
 }
 

@@ -16,7 +16,7 @@ export async function lspCommand(opts: LspCliOptions): Promise<void> {
 
   console.log("Preparing SourceKit-LSP files...");
   const container = await discoverProject(options);
-  const derivedData = await resolveDerivedData(options.derivedData);
+  const derivedData = resolveDerivedData(options.derivedData);
   const simulator = await resolveSimulator({
     sim: options.sim,
     udid: options.udid,

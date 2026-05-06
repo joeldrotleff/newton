@@ -3,6 +3,7 @@ import { exists, relative, resolve } from "../util/paths.ts";
 import { runCapture } from "../util/process.ts";
 import { discoverProject, XcodeContainer } from "./project.ts";
 import { resolveSimulator } from "./simulator.ts";
+import { resolveDerivedData, showBuildSettings } from "./xcodebuild.ts";
 
 export const CONFIG_FILE = "newton.json";
 
@@ -11,6 +12,7 @@ export interface NewtonConfig {
   project?: string;
   workspace?: string;
   configuration?: string;
+  appName?: string;
   preferredSimulator?: string;
 }
 
@@ -29,12 +31,15 @@ export async function writeInitialConfig(options: { force?: boolean } = {}): Pro
   const schemes = await listSchemes(container);
   const scheme = await chooseScheme(container, schemes);
   const simulator = await resolveSimulator();
+  const appSettings = await resolveAppSettings({ container, scheme, simulator });
 
   const config: NewtonConfig = {
     scheme,
     ...(container.kind === "workspace"
       ? { workspace: relative(Deno.cwd(), container.path) }
       : { project: relative(Deno.cwd(), container.path) }),
+    configuration: appSettings.configuration,
+    appName: appSettings.appName,
     preferredSimulator: simulator.name,
   };
 
@@ -64,6 +69,29 @@ export async function listSchemes(container: XcodeContainer): Promise<string[]> 
   const { stdout } = await runCapture("xcodebuild", args);
   const json = JSON.parse(stdout);
   return json.project?.schemes ?? json.workspace?.schemes ?? [];
+}
+
+async function resolveAppSettings(options: {
+  container: XcodeContainer;
+  scheme: string;
+  simulator: Awaited<ReturnType<typeof resolveSimulator>>;
+}): Promise<{ configuration: string; appName: string }> {
+  const settings = await showBuildSettings({
+    container: options.container,
+    scheme: options.scheme,
+    destination: options.simulator,
+    target: "sim",
+    derivedData: resolveDerivedData(),
+  });
+  const appTarget = settings.find((target) => target.buildSettings?.WRAPPER_NAME?.endsWith(".app"));
+  const buildSettings = appTarget?.buildSettings;
+  if (!buildSettings?.WRAPPER_NAME) {
+    fail(`Could not determine app product name for scheme ${options.scheme}.`);
+  }
+  return {
+    configuration: buildSettings.CONFIGURATION ?? "Debug",
+    appName: buildSettings.WRAPPER_NAME.replace(/\.app$/, ""),
+  };
 }
 
 async function chooseScheme(container: XcodeContainer, schemes: string[]): Promise<string> {

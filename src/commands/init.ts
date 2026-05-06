@@ -9,6 +9,8 @@ export async function initCommand(opts: InitCommandOptions): Promise<void> {
   console.log(
     `  ${config.project ? "project" : "workspace"}: ${config.project ?? config.workspace}`,
   );
+  console.log(`  configuration: ${config.configuration}`);
+  console.log(`  appName: ${config.appName}`);
   console.log(`  preferredSimulator: ${config.preferredSimulator}`);
   console.log("Added .newton/ to .gitignore.");
 }

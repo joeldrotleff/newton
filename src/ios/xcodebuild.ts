@@ -9,14 +9,15 @@ export interface BuildOptions {
   scheme: string;
   configuration?: string;
   derivedData?: string;
+  appName?: string;
   destination: SimulatorDevice | IOSDevice;
   target: "sim" | "device";
   verbose?: boolean;
   action?: "build" | "clean build";
 }
 
-export async function resolveDerivedData(path?: string): Promise<string> {
-  return path ?? await defaultDerivedDataPath();
+export function resolveDerivedData(path?: string): string {
+  return path ?? defaultDerivedDataPath();
 }
 
 export function buildDestination(options: Pick<BuildOptions, "destination" | "target">): string {
@@ -79,9 +80,8 @@ export function buildArgs(options: BuildOptions): string[] {
     options.scheme,
     "-destination", // Select the simulator or device destination.
     buildDestination(options),
-    "-derivedDataPath", // Keep build products in Newton's local derived data folder.
-    options.derivedData ?? ".newton/DerivedData",
-    "-resolvePackageDependencies", // Resolve SPM package dependencies before building.
+    "-derivedDataPath", // Keep intermediate build files in Newton's local derived data folder.
+    options.derivedData ?? defaultDerivedDataPath(),
     "-parallelizeTargets", // Let xcodebuild build independent targets concurrently.
     ...configurationArgs(options.configuration),
     "ONLY_ACTIVE_ARCH=YES", // Build only the selected destination architecture for faster local runs.
@@ -112,15 +112,19 @@ function formatBuildSummary(summary: {
   return parts.length ? ` · ${parts.join(" · ")}` : "";
 }
 
-export async function showBuildSettings(options: BuildOptions): Promise<any[]> {
+export interface BuildSettings {
+  buildSettings?: Record<string, string>;
+}
+
+export async function showBuildSettings(options: BuildOptions): Promise<BuildSettings[]> {
   const { stdout } = await runCapture("xcodebuild", [
     ...containerArgs(options.container),
     "-scheme", // Inspect settings for the named scheme.
     options.scheme,
     "-destination", // Match the same simulator or device used for the build.
     buildDestination(options),
-    "-derivedDataPath", // Use Newton's derived data location when resolving build products.
-    options.derivedData ?? ".newton/DerivedData",
+    "-derivedDataPath", // Use Newton's per-worktree derived data location.
+    options.derivedData ?? defaultDerivedDataPath(),
     ...configurationArgs(options.configuration),
     "-showBuildSettings", // Print target build settings instead of building.
     "-json", // Emit machine-readable settings.

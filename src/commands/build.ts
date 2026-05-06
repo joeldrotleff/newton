@@ -12,7 +12,7 @@ export async function buildCommand(opts: RunCliOptions): Promise<void> {
 
   const target = options.target ?? "sim";
   const container = await discoverProject(options);
-  const derivedData = await resolveDerivedData(options.derivedData);
+  const derivedData = resolveDerivedData(options.derivedData);
   const destination = target === "device"
     ? await resolveDevice(options.device)
     : await resolveSimulator({
@@ -22,5 +22,12 @@ export async function buildCommand(opts: RunCliOptions): Promise<void> {
       appStore: options.appStore,
     });
 
-  await build({ ...options, container, scheme: options.scheme, destination, target, derivedData });
+  await build({
+    ...options,
+    container,
+    scheme: options.scheme,
+    destination,
+    target,
+    derivedData,
+  });
 }

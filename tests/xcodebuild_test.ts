@@ -15,6 +15,7 @@ Deno.test("buildArgs constructs simulator xcodebuild command", () => {
   assertEquals(args.includes("/tmp/Axion.xcodeproj"), true);
   assertEquals(args.includes("platform=iOS Simulator,id=SIM-UDID"), true);
   assertEquals(args.includes("CODE_SIGN_IDENTITY=-"), true);
+  assertEquals(args.includes("-resolvePackageDependencies"), false);
 });
 
 Deno.test("buildArgs passes custom configuration names through to xcodebuild", () => {

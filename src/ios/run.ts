@@ -13,6 +13,7 @@ export interface RunOptions {
   target?: "sim" | "device";
   configuration?: string;
   derivedData?: string;
+  appName?: string;
   sim?: string;
   udid?: string;
   idiom?: "iphone" | "ipad";
@@ -29,7 +30,7 @@ export async function runApp(options: RunOptions): Promise<void> {
   if (!options.scheme) fail("Missing required --scheme <name>.");
   const target = options.target ?? "sim";
   const container = await discoverProject(options);
-  const derivedData = await resolveDerivedData(options.derivedData);
+  const derivedData = resolveDerivedData(options.derivedData);
   const appArgs = launchArguments(options);
 
   if (target === "device") {

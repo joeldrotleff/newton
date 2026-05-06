@@ -20,14 +20,13 @@ export interface RunCliOptions {
   scheme?: string;
   project?: string;
   workspace?: string;
-  target?: "sim" | "device";
   configuration?: string;
   derivedData?: string;
   sim?: string;
   udid?: string;
   idiom?: "iphone" | "ipad";
   appStore?: "iphone" | "ipad";
-  device?: string;
+  device?: string | boolean;
   logs?: boolean;
   logLevel?: string;
   logFilter?: string;
@@ -62,18 +61,22 @@ export interface CleanSimsCliOptions {
 // Resolves run options by layering CLI flags over the project's newton.json defaults.
 export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions> {
   const config = await loadConfig();
+  // --device (with or without a value) selects a connected device; otherwise use the simulator.
+  const deviceName = typeof opts.device === "string" ? opts.device : undefined;
+  const target = opts.device ? "device" : "sim";
   return {
     scheme: opts.scheme ?? config.scheme,
     project: opts.project ?? config.project,
     workspace: opts.workspace ?? config.workspace,
-    target: opts.target ?? "sim",
+    target,
     configuration: opts.configuration ?? config.configuration,
     derivedData: opts.derivedData,
+    appName: config.appName,
     sim: opts.sim ?? config.preferredSimulator,
     udid: opts.udid,
     idiom: opts.idiom,
     appStore: opts.appStore,
-    device: opts.device,
+    device: deviceName,
     logs: opts.logs,
     logLevel: opts.logLevel,
     logFilter: opts.logFilter,

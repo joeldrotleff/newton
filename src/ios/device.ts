@@ -56,13 +56,35 @@ export async function resolveDevice(nameOrId?: string): Promise<IOSDevice> {
     fail("No connected iOS device found. Connect/unlock a device, trust this Mac, then retry.");
   }
   if (candidates.length > 1) {
-    fail(
-      `Multiple iOS devices found. Pass --device:\n${
-        candidates.map((device) => `  - ${device.name}`).join("\n")
-      }`,
-    );
+    return await promptDeviceSelection(candidates);
   }
   return candidates[0];
+}
+
+async function promptDeviceSelection(candidates: IOSDevice[]): Promise<IOSDevice> {
+  console.log("Multiple iOS devices found:");
+  candidates.forEach((device, index) => {
+    const transport = device.connectionState ? ` [${device.connectionState}]` : "";
+    console.log(`  ${index + 1}) ${device.name}${transport}`);
+  });
+
+  while (true) {
+    const answer = await readLine(`Select a device [1-${candidates.length}]: `);
+    if (answer === null) fail("No device selected.");
+    const choice = Number(answer.trim());
+    if (Number.isInteger(choice) && choice >= 1 && choice <= candidates.length) {
+      return candidates[choice - 1];
+    }
+    console.log(`Enter a number from 1 to ${candidates.length}.`);
+  }
+}
+
+async function readLine(message: string): Promise<string | null> {
+  await Deno.stdout.write(new TextEncoder().encode(message));
+  const buffer = new Uint8Array(1024);
+  const bytesRead = await Deno.stdin.read(buffer);
+  if (bytesRead === null) return null;
+  return new TextDecoder().decode(buffer.subarray(0, bytesRead)).split(/\r?\n/, 1)[0];
 }
 
 export async function installDeviceApp(device: IOSDevice, appPath: string): Promise<void> {

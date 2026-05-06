@@ -168,7 +168,7 @@ newton build --scheme Axion
 newton build --scheme Axion --project ios/Axion.xcodeproj
 newton build --scheme Axion --workspace ios/Axion.xcworkspace
 newton build --scheme Axion --sim "iPhone 17 Pro"
-newton build --scheme Axion --target device --device "Joel's iPhone"
+newton build --scheme Axion --device "Joel's iPhone"
 ```
 
 Builds the selected scheme with `xcodebuild`. If `newton.json` exists, `--scheme`,
@@ -181,7 +181,8 @@ newton run
 newton run --no-logs
 newton run --logs --log-level debug --log-filter chat,sse
 newton run --app-store iphone --no-logs
-newton run --target device --device "Joel's iPhone" --no-logs
+newton run --device "Joel's iPhone" --no-logs
+newton run --device --no-logs
 ```
 
 Builds, installs, and launches the app on a simulator or connected device.

@@ -2,6 +2,7 @@ import { Command, EnumType } from "@cliffy/command";
 import { CompletionsCommand } from "@cliffy/command/completions";
 import { HelpCommand } from "@cliffy/command/help";
 
+import { buildLogCommand } from "./commands/build-log.ts";
 import { buildCommand } from "./commands/build.ts";
 import { cleanSimsCommand } from "./commands/clean-sims.ts";
 import { createCommand } from "./commands/create.ts";
@@ -19,7 +20,6 @@ const VERSION = "0.1.0";
 
 // Constrained enum types — cliffy validates the value and feeds them to shell completions.
 const idiomType = new EnumType(["iphone", "ipad"]);
-const targetType = new EnumType(["sim", "device"]);
 const displayType = new EnumType(["inline", "open", "none"]);
 
 // Subcommand option groups are inlined per-command rather than shared via helpers,
@@ -131,23 +131,31 @@ export function buildCli() {
       "build",
       new Command()
         .type("idiom", idiomType)
-        .type("target", targetType)
         .description("Build the selected scheme for a simulator or connected device.")
         .option("--scheme <name:string>", "Xcode scheme to build")
         .option("--project <path:file>", "Path to .xcodeproj")
         .option("--workspace <path:file>", "Path to .xcworkspace")
-        .option("--target <target:target>", "Build target", { default: "sim" as const })
         .option("--configuration <name:string>", "Xcode build configuration (e.g. Debug, Release)")
         .option("--derived-data <path:file>", "Custom DerivedData directory")
         .option("--sim <name:string>", "Simulator name (e.g. 'iPhone 15')")
         .option("--udid <id:string>", "Simulator UDID")
         .option("--idiom <idiom:idiom>", "Device idiom")
         .option("--app-store <idiom:idiom>", "Pick an App Store-compatible simulator")
-        .option("--device <name:string>", "Device name (when --target=device)")
+        .option("--device [name:string]", "Build for a connected device (optional name)")
         .option("--verbose", "Print verbose xcodebuild output")
         .example("Build for sim", "newton build --scheme MyApp")
-        .example("Build for device", "newton build --scheme MyApp --target device")
+        .example("Build for device", "newton build --scheme MyApp --device")
         .action((options) => buildCommand(options)),
+    )
+    //
+    // build-log
+    //
+    .command(
+      "build-log",
+      new Command()
+        .description("Open the latest Newton xcodebuild log in $VISUAL, $EDITOR, or nvim.")
+        .example("Open latest build log", "newton build-log")
+        .action(() => buildLogCommand()),
     )
     //
     // run
@@ -156,19 +164,17 @@ export function buildCli() {
       "run",
       new Command()
         .type("idiom", idiomType)
-        .type("target", targetType)
         .description("Build, install, launch, and stream logs for the app.")
         .option("--scheme <name:string>", "Xcode scheme to run")
         .option("--project <path:file>", "Path to .xcodeproj")
         .option("--workspace <path:file>", "Path to .xcworkspace")
-        .option("--target <target:target>", "Run target", { default: "sim" as const })
         .option("--configuration <name:string>", "Xcode build configuration")
         .option("--derived-data <path:file>", "Custom DerivedData directory")
         .option("--sim <name:string>", "Simulator name")
         .option("--udid <id:string>", "Simulator UDID")
         .option("--idiom <idiom:idiom>", "Device idiom")
         .option("--app-store <idiom:idiom>", "Pick an App Store-compatible simulator")
-        .option("--device <name:string>", "Device name (when --target=device)")
+        .option("--device [name:string]", "Run on a connected device (optional name)")
         .option("--no-logs", "Don't stream device/simulator logs")
         .option("--log-level <level:string>", "os_log level filter (e.g. debug, info)")
         .option("--log-filter <predicate:string>", "os_log NSPredicate filter")
@@ -176,7 +182,7 @@ export function buildCli() {
         .option("--verbose", "Print verbose xcodebuild output")
         .example("Run on default sim", "newton run --scheme MyApp")
         .example("Run silently", "newton run --scheme MyApp --no-logs")
-        .example("Run on device", "newton run --scheme MyApp --target device")
+        .example("Run on device", "newton run --scheme MyApp --device")
         .action((options) => runCommand(options)),
     )
     //
@@ -207,21 +213,19 @@ export function buildCli() {
       "preview",
       new Command()
         .type("idiom", idiomType)
-        .type("target", targetType)
         .type("display", displayType)
         .description("Run a named app-side preview and capture it as a screenshot.")
         .arguments("<name:string>")
         .option("--scheme <name:string>", "Xcode scheme to run")
         .option("--project <path:file>", "Path to .xcodeproj")
         .option("--workspace <path:file>", "Path to .xcworkspace")
-        .option("--target <target:target>", "Run target", { default: "sim" as const })
         .option("--configuration <name:string>", "Xcode build configuration")
         .option("--derived-data <path:file>", "Custom DerivedData directory")
         .option("--sim <name:string>", "Simulator name")
         .option("--udid <id:string>", "Simulator UDID")
         .option("--idiom <idiom:idiom>", "Device idiom")
         .option("--app-store <idiom:idiom>", "Pick an App Store-compatible simulator")
-        .option("--device <name:string>", "Device name (when --target=device)")
+        .option("--device [name:string]", "Run on a connected device (optional name)")
         .option("--output <path:file>", "Output screenshot file path")
         .option("--display <mode:display>", "How to display the screenshot", {
           default: "inline" as const,
@@ -241,12 +245,10 @@ export function buildCli() {
       "lsp",
       new Command()
         .type("idiom", idiomType)
-        .type("target", targetType)
         .description("Generate SourceKit-LSP support files via xcode-build-server.")
         .option("--scheme <name:string>", "Xcode scheme to introspect")
         .option("--project <path:file>", "Path to .xcodeproj")
         .option("--workspace <path:file>", "Path to .xcworkspace")
-        .option("--target <target:target>", "Build target", { default: "sim" as const })
         .option("--configuration <name:string>", "Xcode build configuration")
         .option("--derived-data <path:file>", "Custom DerivedData directory")
         .option("--sim <name:string>", "Simulator name")

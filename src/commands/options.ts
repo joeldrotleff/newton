@@ -28,6 +28,7 @@ export interface RunCliOptions {
   appStore?: "iphone" | "ipad";
   device?: string | boolean;
   logs?: boolean;
+  detach?: boolean;
   logLevel?: string;
   logFilter?: string;
   appArg?: string[];
@@ -77,7 +78,7 @@ export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions
     idiom: opts.idiom,
     appStore: opts.appStore,
     device: deviceName,
-    logs: opts.logs,
+    logs: opts.detach ? false : opts.logs,
     logLevel: opts.logLevel,
     logFilter: opts.logFilter,
     appArgs: opts.appArg ?? [],

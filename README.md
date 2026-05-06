@@ -64,7 +64,7 @@ From an iOS project root:
 ```sh
 newton create "My App"
 newton build
-newton run --no-logs
+newton run --detach
 newton screenshot --display open
 ```
 
@@ -178,16 +178,18 @@ Builds the selected scheme with `xcodebuild`. If `newton.json` exists, `--scheme
 
 ```sh
 newton run
+newton run --detach
 newton run --no-logs
 newton run --logs --log-level debug --log-filter chat,sse
-newton run --app-store iphone --no-logs
-newton run --device "Joel's iPhone" --no-logs
-newton run --device --no-logs
+newton run --app-store iphone --detach
+newton run --device "Joel's iPhone" --detach
+newton run --device --detach
 ```
 
 Builds, installs, and launches the app on a simulator or connected device.
 
-By default, `run` attaches to the app console. Use `--no-logs` to launch without attaching.
+By default, `run` attaches to the app console. Use `--detach` (or `--no-logs`) to launch the app and
+then disconnect without streaming logs.
 
 Convenience logging flags are passed as app launch arguments:
 
@@ -234,7 +236,7 @@ newton lsp --scheme Axion
 newton lsp --scheme Axion --source-root ios/Axion/Axion
 ```
 
-Generates `xcode-build-server` files for SourceKit-LSP.
+Generates `buildServer.json` for SourceKit-LSP using Newton's derived data root.
 
 Install the dependency if needed:
 

@@ -1,7 +1,11 @@
 import { containerArgs, defaultDerivedDataPath, XcodeContainer } from "./project.ts";
 import { IOSDevice } from "./device.ts";
 import { SimulatorDevice } from "./simulator.ts";
-import { runCapture, runInherit, runPipe, runStreamingLines } from "../util/process.ts";
+import {
+  runCliCommand,
+  runCliCommandInTerminal,
+  runCliCommandLiveStream,
+} from "../util/process.ts";
 import { BuildLogger, getTimestampedLogPath } from "../util/spinner.ts";
 
 export interface BuildOptions {
@@ -33,7 +37,7 @@ export async function build(options: BuildOptions): Promise<void> {
 
   if (options.verbose) {
     // Verbose mode: pipe output directly to console
-    await runInherit("xcodebuild", args);
+    await runCliCommandInTerminal("xcodebuild", args);
     return;
   }
 
@@ -44,7 +48,7 @@ export async function build(options: BuildOptions): Promise<void> {
   logger.startSpinner();
 
   try {
-    const result = await runStreamingLines(
+    const result = await runCliCommandLiveStream(
       "xcodebuild",
       args,
       async ({ text }) => await logger.writeLine(text),
@@ -117,7 +121,7 @@ export interface BuildSettings {
 }
 
 export async function showBuildSettings(options: BuildOptions): Promise<BuildSettings[]> {
-  const { stdout } = await runCapture("xcodebuild", [
+  const { stdout } = await runCliCommand("xcodebuild", [
     ...containerArgs(options.container),
     "-scheme", // Inspect settings for the named scheme.
     options.scheme,
@@ -130,18 +134,4 @@ export async function showBuildSettings(options: BuildOptions): Promise<BuildSet
     "-json", // Emit machine-readable settings.
   ]);
   return JSON.parse(stdout);
-}
-
-export async function runLspBuild(options: BuildOptions): Promise<void> {
-  await runPipe(
-    "xcodebuild",
-    buildArgs({ ...options, action: "clean build", verbose: true }),
-    "xcode-build-server",
-    [
-      "parse", // Convert xcodebuild output into compile commands.
-      "-o", // Write the compile database to the next path.
-      ".compile",
-      "--skip-validate-bin", // Avoid requiring compiled binaries while generating LSP metadata.
-    ],
-  );
 }

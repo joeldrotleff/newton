@@ -1,5 +1,5 @@
 import { fail } from "../util/errors.ts";
-import { runCapture } from "../util/process.ts";
+import { runCliCommand } from "../util/process.ts";
 import { join } from "../util/paths.ts";
 
 export interface DevelopmentTeam {
@@ -9,7 +9,7 @@ export interface DevelopmentTeam {
 }
 
 export async function listDevelopmentTeams(): Promise<DevelopmentTeam[]> {
-  const result = await runCapture("security", [
+  const result = await runCliCommand("security", [
     "find-certificate", // Search keychains for matching certificates.
     "-a", // Return all matches instead of only the first one.
     "-c", // Match certificates whose common name contains the next value.
@@ -97,7 +97,7 @@ async function certificateSubject(pem: string): Promise<string> {
   const certPath = join(tempDir, "certificate.pem");
   try {
     await Deno.writeTextFile(certPath, pem);
-    const result = await runCapture("openssl", [
+    const result = await runCliCommand("openssl", [
       "x509", // Inspect an X.509 certificate.
       "-in", // Read the certificate from the next path.
       certPath,

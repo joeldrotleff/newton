@@ -1,6 +1,6 @@
 import { fail } from "../util/errors.ts";
 import { join } from "../util/paths.ts";
-import { runCapture, runInherit } from "../util/process.ts";
+import { runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
 
 export interface IOSDevice {
   name: string;
@@ -12,7 +12,7 @@ export interface IOSDevice {
 
 export async function listDevices(): Promise<IOSDevice[]> {
   const jsonPath = join(await Deno.makeTempDir(), "devices.json");
-  await runCapture("xcrun", [
+  await runCliCommand("xcrun", [
     "devicectl", // Run Xcode's device management tool through xcrun.
     "list", // List connected devices.
     "devices", // Limit the listing to devices rather than other resources.
@@ -88,7 +88,7 @@ async function readLine(message: string): Promise<string | null> {
 }
 
 export async function installDeviceApp(device: IOSDevice, appPath: string): Promise<void> {
-  await runCapture("xcrun", [
+  await runCliCommand("xcrun", [
     "devicectl", // Run Xcode's device management tool through xcrun.
     "device", // Use the device subcommands.
     "install", // Install content onto the device.
@@ -116,6 +116,6 @@ export async function launchDeviceApp(
     bundleId,
     ...(appArgs.length > 0 ? ["--", ...appArgs] : []), // Separate devicectl args from app args.
   ];
-  if (logs) await runInherit("xcrun", args);
-  else await runCapture("xcrun", args);
+  if (logs) await runCliCommandInTerminal("xcrun", args);
+  else await runCliCommand("xcrun", args);
 }

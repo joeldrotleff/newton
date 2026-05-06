@@ -38,6 +38,18 @@ Deno.test("preview subcommand declares scheme, display, delay, and app-arg optio
   }
 });
 
+Deno.test("run subcommand declares detach option", () => {
+  const run = buildCli().getCommand("run");
+  if (!run) throw new Error("run command not found");
+
+  const optionNames = run.getOptions().map((o) => o.name);
+  assertEquals(
+    optionNames.includes("detach"),
+    true,
+    `expected --detach on 'run', got: ${optionNames.join(", ")}`,
+  );
+});
+
 Deno.test("top-level help mentions newton", () => {
   const help = buildCli().getHelp();
   assertStringIncludes(help, "newton");

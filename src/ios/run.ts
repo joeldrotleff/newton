@@ -1,5 +1,5 @@
 import { fail } from "../util/errors.ts";
-import { runCapture } from "../util/process.ts";
+import { runCliCommand } from "../util/process.ts";
 import { locateBuiltApp, readBundleId } from "./appBundle.ts";
 import { installDeviceApp, launchDeviceApp, resolveDevice } from "./device.ts";
 import { discoverProject } from "./project.ts";
@@ -82,13 +82,13 @@ export async function runApp(options: RunOptions): Promise<void> {
     derivedData,
   });
   const bundleId = await readBundleId(appPath);
-  await runCapture("xcrun", [
+  await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "terminate", // Stop any currently running copy before installing the new build.
     simulator.udid,
     bundleId,
   ], { check: false });
-  await runCapture("xcrun", [
+  await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "install", // Install the built .app onto the selected simulator.
     simulator.udid,

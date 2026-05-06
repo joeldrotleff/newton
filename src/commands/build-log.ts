@@ -1,6 +1,6 @@
 import { fail } from "../util/errors.ts";
 import { join } from "../util/paths.ts";
-import { runInherit } from "../util/process.ts";
+import { runCliCommandInTerminal } from "../util/process.ts";
 
 const LOG_DIR = ".newton/logs";
 
@@ -8,7 +8,7 @@ export async function buildLogCommand(): Promise<void> {
   const logPath = await latestBuildLog();
   const editor = Deno.env.get("VISUAL") ?? Deno.env.get("EDITOR") ?? "nvim";
   console.log(`Opening ${logPath}`);
-  await runInherit(editor, [logPath]);
+  await runCliCommandInTerminal(editor, [logPath]);
 }
 
 async function latestBuildLog(): Promise<string> {

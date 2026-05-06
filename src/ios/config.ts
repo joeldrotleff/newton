@@ -1,6 +1,6 @@
 import { fail } from "../util/errors.ts";
 import { exists, relative, resolve } from "../util/paths.ts";
-import { runCapture } from "../util/process.ts";
+import { runCliCommand } from "../util/process.ts";
 import { discoverProject, XcodeContainer } from "./project.ts";
 import { resolveSimulator } from "./simulator.ts";
 import { resolveDerivedData, showBuildSettings } from "./xcodebuild.ts";
@@ -66,7 +66,7 @@ export async function listSchemes(container: XcodeContainer): Promise<string[]> 
       "-project", // Inspect the project at the next path.
       container.path,
     ];
-  const { stdout } = await runCapture("xcodebuild", args);
+  const { stdout } = await runCliCommand("xcodebuild", args);
   const json = JSON.parse(stdout);
   return json.project?.schemes ?? json.workspace?.schemes ?? [];
 }

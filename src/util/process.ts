@@ -22,7 +22,8 @@ export function commandString(command: string, args: string[]): string {
   return [command, ...args.map((arg) => arg.includes(" ") ? JSON.stringify(arg) : arg)].join(" ");
 }
 
-export async function runCapture(
+// Run a command to completion and return captured stdout/stderr for Newton to inspect.
+export async function runCliCommand(
   command: string,
   args: string[],
   options: { cwd?: string; check?: boolean; env?: Record<string, string> } = {},
@@ -53,7 +54,8 @@ export async function runCapture(
   return commandResult;
 }
 
-export async function runInherit(
+// Run a command attached to the user's terminal, as if they invoked it directly.
+export async function runCliCommandInTerminal(
   command: string,
   args: string[],
   options: { cwd?: string; check?: boolean } = {},
@@ -69,7 +71,8 @@ export async function runInherit(
   return await waitForProcess(command, args, process, options.check);
 }
 
-export async function runStreamingLines(
+// Run a command live while letting Newton process stdout/stderr one line at a time.
+export async function runCliCommandLiveStream(
   command: string,
   args: string[],
   onLine: (line: StreamingLine) => void | Promise<void>,
@@ -89,64 +92,6 @@ export async function runStreamingLines(
   const code = await waitForProcess(command, args, process, options.check);
   await Promise.all([stdout, stderr]);
   return { code };
-}
-
-export async function runPipe(
-  producerCommand: string,
-  producerArgs: string[],
-  consumerCommand: string,
-  consumerArgs: string[],
-  options: { cwd?: string } = {},
-): Promise<void> {
-  const producer = new Deno.Command(producerCommand, {
-    args: producerArgs,
-    cwd: options.cwd,
-    stdout: "piped",
-    stderr: "piped",
-  }).spawn();
-
-  const consumer = new Deno.Command(consumerCommand, {
-    args: consumerArgs,
-    cwd: options.cwd,
-    stdin: "piped",
-    stdout: "piped",
-    stderr: "piped",
-  }).spawn();
-
-  const producerStderr = streamText(producer.stderr);
-  const consumerStdout = streamText(consumer.stdout);
-  const consumerStderr = streamText(consumer.stderr);
-
-  await producer.stdout.pipeTo(consumer.stdin);
-  const [producerStatus, consumerStatus, producerError, consumerOutput, consumerError] =
-    await Promise.all([
-      producer.status,
-      consumer.status,
-      producerStderr,
-      consumerStdout,
-      consumerStderr,
-    ]);
-
-  if (producerStatus.code !== 0) {
-    throw new NewtonError(
-      `Command failed (${producerStatus.code}): ${commandString(producerCommand, producerArgs)}${
-        formatCapturedOutput(producerError)
-      }`,
-      producerStatus.code,
-    );
-  }
-  if (consumerStatus.code !== 0) {
-    throw new NewtonError(
-      `Command failed (${consumerStatus.code}): ${commandString(consumerCommand, consumerArgs)}${
-        formatCapturedOutput(consumerError || consumerOutput)
-      }`,
-      consumerStatus.code,
-    );
-  }
-}
-
-async function streamText(stream: ReadableStream<Uint8Array>): Promise<string> {
-  return await new Response(stream).text();
 }
 
 async function readStreamLines(
@@ -221,13 +166,8 @@ async function waitForProcess(
   }
 }
 
-function formatCapturedOutput(output: string): string {
-  const trimmed = output.trim();
-  return trimmed ? `\n${trimmed}` : "";
-}
-
 export async function executableExists(command: string): Promise<boolean> {
-  const result = await runCapture("/usr/bin/env", [
+  const result = await runCliCommand("/usr/bin/env", [
     "which", // Locate the executable using the caller's PATH.
     command,
   ], { check: false });

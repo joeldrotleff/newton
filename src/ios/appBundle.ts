@@ -1,6 +1,6 @@
 import { fail } from "../util/errors.ts";
 import { exists, join } from "../util/paths.ts";
-import { runCapture } from "../util/process.ts";
+import { runCliCommand } from "../util/process.ts";
 import { BuildOptions, resolveDerivedData } from "./xcodebuild.ts";
 
 export async function locateBuiltApp(options: BuildOptions): Promise<string> {
@@ -20,7 +20,7 @@ export async function locateBuiltApp(options: BuildOptions): Promise<string> {
 
 export async function readBundleId(appPath: string): Promise<string> {
   const plist = join(appPath, "Info.plist");
-  const result = await runCapture("/usr/libexec/PlistBuddy", [
+  const result = await runCliCommand("/usr/libexec/PlistBuddy", [
     "-c", // Run the next PlistBuddy command.
     "Print :CFBundleIdentifier", // Read the app bundle identifier from Info.plist.
     plist,

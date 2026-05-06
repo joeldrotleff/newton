@@ -1,5 +1,5 @@
 import { fail } from "../util/errors.ts";
-import { runCapture, runInherit } from "../util/process.ts";
+import { runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
 
 export type Idiom = "iphone" | "ipad";
 
@@ -37,7 +37,7 @@ const IPAD_SCREENSHOT_PATTERNS = [
 ];
 
 export async function listSimulators(): Promise<SimulatorDevice[]> {
-  const { stdout } = await runCapture("xcrun", [
+  const { stdout } = await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "list", // List simulator resources.
     "devices", // Limit the listing to simulator devices.
@@ -151,12 +151,12 @@ function rankDevice(name: string, idiom: Idiom): number {
 }
 
 export async function bootSimulator(udid: string): Promise<void> {
-  await runCapture("xcrun", [
+  await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "boot", // Start the selected simulator if it is not already booted.
     udid,
   ], { check: false });
-  await runCapture("xcrun", [
+  await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "bootstatus", // Wait for the simulator boot process to finish.
     udid,
@@ -165,7 +165,7 @@ export async function bootSimulator(udid: string): Promise<void> {
 }
 
 export async function openSimulator(udid: string): Promise<void> {
-  await runCapture("open", [
+  await runCliCommand("open", [
     "--background", // Launch or reuse Simulator without bringing it to the foreground.
     "-a", // Open with the application named by the next argument.
     "Simulator", // Application to open.
@@ -178,7 +178,7 @@ export async function openSimulator(udid: string): Promise<void> {
 }
 
 export async function bootedSimulatorUdid(): Promise<string> {
-  const { stdout } = await runCapture("xcrun", [
+  const { stdout } = await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "list", // List simulator resources.
     "devices", // Limit the listing to simulator devices.
@@ -200,7 +200,7 @@ export async function launchSimulatorApp(
   logs: boolean,
 ): Promise<void> {
   if (logs) {
-    await runInherit("xcrun", [
+    await runCliCommandInTerminal("xcrun", [
       "simctl", // Run the Simulator control tool through xcrun.
       "launch", // Start the app on the selected simulator.
       "--console-pty", // Stream the app's console output through this terminal.
@@ -209,7 +209,7 @@ export async function launchSimulatorApp(
       ...appArgs, // Forward Newton app arguments to the launched app.
     ]);
   } else {
-    await runCapture("xcrun", [
+    await runCliCommand("xcrun", [
       "simctl", // Run the Simulator control tool through xcrun.
       "launch", // Start the app on the selected simulator.
       udid,
@@ -220,7 +220,7 @@ export async function launchSimulatorApp(
 }
 
 export async function deleteUnavailableSimulators(): Promise<void> {
-  await runCapture("xcrun", [
+  await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "delete", // Delete simulator(s).
     "unavailable", // Target only unavailable simulators (orphaned devices).
@@ -237,7 +237,9 @@ export interface SimulatorDeleteResult {
   failed: SimulatorDeleteFailure[];
 }
 
-export async function deleteSimulatorsByRuntime(runtimeVersion: string): Promise<SimulatorDeleteResult> {
+export async function deleteSimulatorsByRuntime(
+  runtimeVersion: string,
+): Promise<SimulatorDeleteResult> {
   const devices = await listSimulators();
   const toDelete = devices.filter((device) => device.runtimeVersion === runtimeVersion);
   const failed: SimulatorDeleteFailure[] = [];
@@ -245,14 +247,14 @@ export async function deleteSimulatorsByRuntime(runtimeVersion: string): Promise
 
   for (const device of toDelete) {
     if (device.state === "Booted") {
-      await runCapture("xcrun", [
+      await runCliCommand("xcrun", [
         "simctl", // Run the Simulator control tool through xcrun.
         "shutdown", // Stop booted simulators before deleting them.
         device.udid,
       ], { check: false });
     }
 
-    const result = await runCapture("xcrun", [
+    const result = await runCliCommand("xcrun", [
       "simctl", // Run the Simulator control tool through xcrun.
       "delete", // Delete simulator(s).
       device.udid, // Delete by UDID.

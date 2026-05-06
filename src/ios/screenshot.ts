@@ -1,6 +1,6 @@
 import { fail } from "../util/errors.ts";
 import { dirname, ensureDir, join, resolve, timestamp } from "../util/paths.ts";
-import { executableExists, runCapture, runInherit } from "../util/process.ts";
+import { executableExists, runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
 import { bootSimulator, resolveSimulator } from "./simulator.ts";
 
 export type ScreenshotDisplay = "inline" | "open" | "none";
@@ -18,7 +18,7 @@ export async function captureScreenshot(options: ScreenshotOptions = {}): Promis
 
   const simulator = await resolveSimulator({ sim: options.sim, udid: options.udid });
   await bootSimulator(simulator.udid);
-  await runCapture("xcrun", [
+  await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "io", // Use simulator input/output commands.
     simulator.udid,
@@ -33,33 +33,33 @@ export async function captureScreenshot(options: ScreenshotOptions = {}): Promis
 export async function displayScreenshot(path: string, display: ScreenshotDisplay): Promise<void> {
   if (display === "none") return;
   if (display === "open") {
-    await runCapture("open", [
+    await runCliCommand("open", [
       path, // Ask macOS to open the screenshot with the default image viewer.
     ]);
     return;
   }
 
   if (await executableExists("viu")) {
-    await runInherit("viu", [
+    await runCliCommandInTerminal("viu", [
       path, // Render the screenshot inline with viu.
     ]);
     return;
   }
   if (await executableExists("kitten")) {
-    await runInherit("kitten", [
+    await runCliCommandInTerminal("kitten", [
       "icat", // Render an inline image using Kitty's image protocol.
       path,
     ]);
     return;
   }
   if (await executableExists("imgcat")) {
-    await runInherit("imgcat", [
+    await runCliCommandInTerminal("imgcat", [
       path, // Render the screenshot inline with iTerm's imgcat helper.
     ]);
     return;
   }
   if (await executableExists("wezterm")) {
-    await runInherit("wezterm", [
+    await runCliCommandInTerminal("wezterm", [
       "imgcat", // Render an inline image using WezTerm's imgcat command.
       path,
     ]);

@@ -1,6 +1,7 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { locateBuiltApp } from "../src/ios/appBundle.ts";
 import { BuildOptions } from "../src/ios/xcodebuild.ts";
+import { defaultDerivedDataPath } from "../src/ios/project.ts";
 
 Deno.test("locateBuiltApp calculates simulator app path from config", async () => {
   await using fixture = await appFixture();
@@ -43,12 +44,23 @@ Deno.test("locateBuiltApp requires appName from newton config", async () => {
   );
 });
 
-async function appFixture() {
+interface AppFixture {
+  root: string;
+  derivedData: string;
+  originalCwd: string;
+  [Symbol.asyncDispose](): Promise<void>;
+}
+
+async function appFixture(): Promise<AppFixture> {
   const root = await Deno.makeTempDir();
+  const originalCwd = Deno.cwd();
+  Deno.chdir(root);
   return {
     root,
-    derivedData: `${root}/DerivedData`,
+    derivedData: defaultDerivedDataPath(Deno.cwd()),
+    originalCwd,
     async [Symbol.asyncDispose]() {
+      Deno.chdir(originalCwd);
       await Deno.remove(root, { recursive: true });
     },
   };
@@ -60,7 +72,7 @@ async function createApp(path: string) {
 }
 
 function buildOptions(
-  fixture: Awaited<ReturnType<typeof appFixture>>,
+  fixture: AppFixture,
   options: Pick<BuildOptions, "configuration" | "appName" | "target">,
 ): BuildOptions {
   const target = options.target ?? "sim";
@@ -79,6 +91,5 @@ function buildOptions(
       isAvailable: true,
     },
     target,
-    derivedData: fixture.derivedData,
   };
 }

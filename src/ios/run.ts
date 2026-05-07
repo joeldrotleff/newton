@@ -4,7 +4,7 @@ import { locateBuiltApp, readBundleId } from "./appBundle.ts";
 import { installDeviceApp, launchDeviceApp, resolveDevice } from "./device.ts";
 import { discoverProject } from "./project.ts";
 import { bootSimulator, launchSimulatorApp, openSimulator, resolveSimulator } from "./simulator.ts";
-import { build, resolveDerivedData } from "./xcodebuild.ts";
+import { build } from "./xcodebuild.ts";
 
 export interface RunOptions {
   scheme?: string;
@@ -12,10 +12,8 @@ export interface RunOptions {
   workspace?: string;
   target?: "sim" | "device";
   configuration?: string;
-  derivedData?: string;
   appName?: string;
   sim?: string;
-  udid?: string;
   idiom?: "iphone" | "ipad";
   appStore?: "iphone" | "ipad";
   device?: string;
@@ -27,10 +25,9 @@ export interface RunOptions {
 }
 
 export async function runApp(options: RunOptions): Promise<void> {
-  if (!options.scheme) fail("Missing required --scheme <name>.");
+  if (!options.scheme) fail("Missing scheme in newton.json. Run `newton init`.");
   const target = options.target ?? "sim";
-  const container = await discoverProject(options);
-  const derivedData = resolveDerivedData(options.derivedData);
+  const container = await discoverProject();
   const appArgs = launchArguments(options);
 
   if (target === "device") {
@@ -41,7 +38,6 @@ export async function runApp(options: RunOptions): Promise<void> {
       scheme: options.scheme,
       destination: device,
       target,
-      derivedData,
     });
     const appPath = await locateBuiltApp({
       ...options,
@@ -49,7 +45,6 @@ export async function runApp(options: RunOptions): Promise<void> {
       scheme: options.scheme,
       destination: device,
       target,
-      derivedData,
     });
     const bundleId = await readBundleId(appPath);
     await installDeviceApp(device, appPath);
@@ -59,7 +54,6 @@ export async function runApp(options: RunOptions): Promise<void> {
 
   const simulator = await resolveSimulator({
     sim: options.sim,
-    udid: options.udid,
     idiom: options.idiom,
     appStore: options.appStore,
   });
@@ -71,7 +65,6 @@ export async function runApp(options: RunOptions): Promise<void> {
     scheme: options.scheme,
     destination: simulator,
     target,
-    derivedData,
   });
   const appPath = await locateBuiltApp({
     ...options,
@@ -79,7 +72,6 @@ export async function runApp(options: RunOptions): Promise<void> {
     scheme: options.scheme,
     destination: simulator,
     target,
-    derivedData,
   });
   const bundleId = await readBundleId(appPath);
   await runCliCommand("xcrun", [

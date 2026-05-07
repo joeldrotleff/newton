@@ -24,12 +24,12 @@ Deno.test("buildCli registers all top-level subcommands", () => {
   ]);
 });
 
-Deno.test("preview subcommand declares scheme, display, delay, and app-arg options", () => {
+Deno.test("preview subcommand declares display, delay, and app-arg options", () => {
   const preview = buildCli().getCommand("preview");
   if (!preview) throw new Error("preview command not found");
 
   const optionNames = preview.getOptions().map((o) => o.name);
-  for (const flag of ["scheme", "display", "delay", "app-arg", "logs"]) {
+  for (const flag of ["display", "delay", "app-arg"]) {
     assertEquals(
       optionNames.includes(flag),
       true,

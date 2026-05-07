@@ -22,19 +22,16 @@ Deno.test("resolveRunOptions reads custom configuration from newton config", asy
   }
 });
 
-Deno.test("resolveRunOptions lets --configuration override newton config", async () => {
+Deno.test("resolveRunOptions defaults logs on without --detach", async () => {
   const cwd = Deno.cwd();
   const tempDir = await Deno.makeTempDir();
   try {
     Deno.chdir(tempDir);
-    await Deno.writeTextFile(
-      CONFIG_FILE,
-      JSON.stringify({ configuration: "Debug Staging" }),
-    );
+    await Deno.writeTextFile(CONFIG_FILE, JSON.stringify({}));
 
-    const options = await resolveRunOptions({ configuration: "Release Staging" });
+    const options = await resolveRunOptions({});
 
-    assertEquals(options.configuration, "Release Staging");
+    assertEquals(options.logs, true);
   } finally {
     Deno.chdir(cwd);
     await Deno.remove(tempDir, { recursive: true });

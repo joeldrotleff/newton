@@ -75,7 +75,10 @@ export function buildCli() {
         .type("idiom", idiomType)
         .description("List installed iOS simulators and mark Newton's default choice.")
         .option("--idiom <idiom:idiom>", "Filter to iphone or ipad simulators")
-        .option("--app-store <idiom:idiom>", "Filter to App Store-compatible simulators")
+        .option(
+          "--app-store <idiom:idiom>",
+          "Filter to simulators whose screenshot resolution matches App Store Connect requirements",
+        )
         .example("All simulators", "newton sims")
         .example("iPad only", "newton sims --idiom ipad")
         .action((options) => simsCommand(options)),
@@ -119,10 +122,8 @@ export function buildCli() {
     .command(
       "open",
       new Command()
-        .description("Open the discovered or configured Xcode project/workspace.")
-        .option("--project <path:file>", "Path to .xcodeproj")
-        .option("--workspace <path:file>", "Path to .xcworkspace")
-        .action((options) => openCommand(options)),
+        .description("Open the configured Xcode project/workspace in Xcode.")
+        .action(() => openCommand()),
     )
     //
     // build
@@ -131,20 +132,16 @@ export function buildCli() {
       "build",
       new Command()
         .type("idiom", idiomType)
-        .description("Build the selected scheme for a simulator or connected device.")
-        .option("--scheme <name:string>", "Xcode scheme to build")
-        .option("--project <path:file>", "Path to .xcodeproj")
-        .option("--workspace <path:file>", "Path to .xcworkspace")
-        .option("--configuration <name:string>", "Xcode build configuration (e.g. Debug, Release)")
-        .option("--derived-data <path:file>", "Custom DerivedData directory")
-        .option("--sim <name:string>", "Simulator name (e.g. 'iPhone 15')")
-        .option("--udid <id:string>", "Simulator UDID")
-        .option("--idiom <idiom:idiom>", "Device idiom")
-        .option("--app-store <idiom:idiom>", "Pick an App Store-compatible simulator")
+        .description("Build the configured scheme for a simulator or connected device.")
+        .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
+        .option(
+          "--app-store <idiom:idiom>",
+          "Pick a simulator whose resolution matches App Store Connect screenshot requirements",
+        )
         .option("--device [name:string]", "Build for a connected device (optional name)")
         .option("--verbose", "Print verbose xcodebuild output")
-        .example("Build for sim", "newton build --scheme MyApp")
-        .example("Build for device", "newton build --scheme MyApp --device")
+        .example("Build for sim", "newton build")
+        .example("Build for device", "newton build --device")
         .action((options) => buildCommand(options)),
     )
     //
@@ -164,26 +161,21 @@ export function buildCli() {
       "run",
       new Command()
         .type("idiom", idiomType)
-        .description("Build, install, and launch the app, optionally streaming logs.")
-        .option("--scheme <name:string>", "Xcode scheme to run")
-        .option("--project <path:file>", "Path to .xcodeproj")
-        .option("--workspace <path:file>", "Path to .xcworkspace")
-        .option("--configuration <name:string>", "Xcode build configuration")
-        .option("--derived-data <path:file>", "Custom DerivedData directory")
-        .option("--sim <name:string>", "Simulator name")
-        .option("--udid <id:string>", "Simulator UDID")
-        .option("--idiom <idiom:idiom>", "Device idiom")
-        .option("--app-store <idiom:idiom>", "Pick an App Store-compatible simulator")
+        .description("Build, install, launch, and stream logs for the app.")
+        .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
+        .option(
+          "--app-store <idiom:idiom>",
+          "Pick a simulator whose resolution matches App Store Connect screenshot requirements",
+        )
         .option("--device [name:string]", "Run on a connected device (optional name)")
-        .option("--no-logs", "Don't stream device/simulator logs")
-        .option("--detach", "Launch the app, then disconnect without streaming logs")
+        .option("--detach", "Launch the app and exit without streaming logs")
         .option("--log-level <level:string>", "os_log level filter (e.g. debug, info)")
         .option("--log-filter <predicate:string>", "os_log NSPredicate filter")
         .option("--app-arg <arg:string>", "Extra launch argument (repeatable)", { collect: true })
         .option("--verbose", "Print verbose xcodebuild output")
-        .example("Run on default sim", "newton run --scheme MyApp")
-        .example("Run detached", "newton run --scheme MyApp --detach")
-        .example("Run on device", "newton run --scheme MyApp --device")
+        .example("Run on default sim", "newton run")
+        .example("Run detached", "newton run --detach")
+        .example("Run on device", "newton run --device")
         .action((options) => runCommand(options)),
     )
     //
@@ -192,13 +184,10 @@ export function buildCli() {
     .command(
       "screenshot",
       new Command()
-        .type("idiom", idiomType)
         .type("display", displayType)
         .description("Capture a screenshot from the selected simulator.")
         .option("--sim <name:string>", "Simulator name")
         .option("--udid <id:string>", "Simulator UDID")
-        .option("--idiom <idiom:idiom>", "Device idiom")
-        .option("--app-store <idiom:idiom>", "Pick an App Store-compatible simulator")
         .option("--output <path:file>", "Output file path")
         .option("--display <mode:display>", "How to display the screenshot", {
           default: "none" as const,
@@ -217,15 +206,11 @@ export function buildCli() {
         .type("display", displayType)
         .description("Run a named app-side preview and capture it as a screenshot.")
         .arguments("<name:string>")
-        .option("--scheme <name:string>", "Xcode scheme to run")
-        .option("--project <path:file>", "Path to .xcodeproj")
-        .option("--workspace <path:file>", "Path to .xcworkspace")
-        .option("--configuration <name:string>", "Xcode build configuration")
-        .option("--derived-data <path:file>", "Custom DerivedData directory")
-        .option("--sim <name:string>", "Simulator name")
-        .option("--udid <id:string>", "Simulator UDID")
-        .option("--idiom <idiom:idiom>", "Device idiom")
-        .option("--app-store <idiom:idiom>", "Pick an App Store-compatible simulator")
+        .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
+        .option(
+          "--app-store <idiom:idiom>",
+          "Pick a simulator whose resolution matches App Store Connect screenshot requirements",
+        )
         .option("--device [name:string]", "Run on a connected device (optional name)")
         .option("--output <path:file>", "Output screenshot file path")
         .option("--display <mode:display>", "How to display the screenshot", {
@@ -233,10 +218,9 @@ export function buildCli() {
         })
         .option("--delay <seconds:number>", "Seconds to wait before capturing", { default: 2 })
         .option("--app-arg <arg:string>", "Extra launch argument (repeatable)", { collect: true })
-        .option("--logs", "Stream device/simulator logs while running")
         .option("--verbose", "Print verbose xcodebuild output")
-        .example("Capture preview", "newton preview metricCards --scheme MyApp")
-        .example("Open in viewer", "newton preview metricCards --scheme MyApp --display open")
+        .example("Capture preview", "newton preview metricCards")
+        .example("Open in viewer", "newton preview metricCards --display open")
         .action((options, name) => previewCommand(name, options)),
     )
     //
@@ -245,22 +229,9 @@ export function buildCli() {
     .command(
       "lsp",
       new Command()
-        .type("idiom", idiomType)
         .description("Generate SourceKit-LSP support files via xcode-build-server.")
-        .option("--scheme <name:string>", "Xcode scheme to introspect")
-        .option("--project <path:file>", "Path to .xcodeproj")
-        .option("--workspace <path:file>", "Path to .xcworkspace")
-        .option("--configuration <name:string>", "Xcode build configuration")
-        .option("--derived-data <path:file>", "Custom DerivedData directory")
-        .option("--sim <name:string>", "Simulator name")
-        .option("--udid <id:string>", "Simulator UDID")
-        .option("--idiom <idiom:idiom>", "Device idiom")
-        .option("--app-store <idiom:idiom>", "Pick an App Store-compatible simulator")
-        .option("--source-root <path:file>", "Copy buildServer.json to this directory")
-        .option("--verbose", "Print verbose xcodebuild output")
-        .example("Generate LSP files", "newton lsp --scheme MyApp")
-        .example("Copy to source root", "newton lsp --scheme MyApp --source-root ./MyApp")
-        .action((options) => lspCommand(options)),
+        .example("Generate LSP files", "newton lsp")
+        .action(() => lspCommand()),
     )
     //
     // help / completions (built-in)

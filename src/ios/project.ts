@@ -1,22 +1,17 @@
 import { fail } from "../util/errors.ts";
+import { loadConfig } from "./config.ts";
 import { dirname, join, relative, resolve, walkFiles } from "../util/paths.ts";
 
 export type XcodeContainer =
   | { kind: "project"; path: string }
   | { kind: "workspace"; path: string };
 
-export interface ProjectOptions {
-  project?: string;
-  workspace?: string;
-  cwd?: string;
-}
+export async function discoverProject(): Promise<XcodeContainer> {
+  const config = await loadConfig();
+  if (config.project) return { kind: "project", path: resolve(config.project) };
+  if (config.workspace) return { kind: "workspace", path: resolve(config.workspace) };
 
-export async function discoverProject(options: ProjectOptions = {}): Promise<XcodeContainer> {
-  if (options.project && options.workspace) fail("Pass either --project or --workspace, not both.");
-  if (options.project) return { kind: "project", path: resolve(options.project) };
-  if (options.workspace) return { kind: "workspace", path: resolve(options.workspace) };
-
-  const cwd = options.cwd ?? Deno.cwd();
+  const cwd = Deno.cwd();
   const projects: string[] = [];
   const workspaces: string[] = [];
 
@@ -29,11 +24,11 @@ export async function discoverProject(options: ProjectOptions = {}): Promise<Xco
 
   const candidates = [...workspaces, ...projects];
   if (candidates.length === 0) {
-    fail("No .xcworkspace or .xcodeproj found. Pass --project or --workspace.");
+    fail("No .xcworkspace or .xcodeproj found. Run `newton init` to set one up.");
   }
 
   fail(
-    `Multiple Xcode projects/workspaces found. Pass --project or --workspace:\n${
+    `Multiple Xcode projects/workspaces found. Run \`newton init\` to pick one:\n${
       candidates.map((path) => `  - ${relative(cwd, path)}`).join("\n")
     }`,
   );

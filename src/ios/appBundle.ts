@@ -1,14 +1,15 @@
 import { fail } from "../util/errors.ts";
 import { exists, join } from "../util/paths.ts";
 import { runCliCommand } from "../util/process.ts";
-import { BuildOptions, resolveDerivedData } from "./xcodebuild.ts";
+import { defaultDerivedDataPath } from "./project.ts";
+import { BuildOptions } from "./xcodebuild.ts";
 
 export async function locateBuiltApp(options: BuildOptions): Promise<string> {
   if (!options.appName) fail("Missing appName in newton.json. Run `newton init --force`.");
   const configuration = options.configuration ?? "Debug";
   const sdk = options.target === "device" ? "iphoneos" : "iphonesimulator";
   const appPath = join(
-    resolveDerivedData(options.derivedData),
+    defaultDerivedDataPath(),
     "Build",
     "Products",
     `${configuration}-${sdk}`,

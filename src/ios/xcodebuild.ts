@@ -12,16 +12,11 @@ export interface BuildOptions {
   container: XcodeContainer;
   scheme: string;
   configuration?: string;
-  derivedData?: string;
   appName?: string;
   destination: SimulatorDevice | IOSDevice;
   target: "sim" | "device";
   verbose?: boolean;
   action?: "build" | "clean build";
-}
-
-export function resolveDerivedData(path?: string): string {
-  return path ?? defaultDerivedDataPath();
 }
 
 export function buildDestination(options: Pick<BuildOptions, "destination" | "target">): string {
@@ -85,7 +80,7 @@ export function buildArgs(options: BuildOptions): string[] {
     "-destination", // Select the simulator or device destination.
     buildDestination(options),
     "-derivedDataPath", // Keep intermediate build files in Newton's local derived data folder.
-    options.derivedData ?? defaultDerivedDataPath(),
+    defaultDerivedDataPath(),
     "-parallelizeTargets", // Let xcodebuild build independent targets concurrently.
     ...configurationArgs(options.configuration),
     "ONLY_ACTIVE_ARCH=YES", // Build only the selected destination architecture for faster local runs.
@@ -128,7 +123,7 @@ export async function showBuildSettings(options: BuildOptions): Promise<BuildSet
     "-destination", // Match the same simulator or device used for the build.
     buildDestination(options),
     "-derivedDataPath", // Use Newton's per-worktree derived data location.
-    options.derivedData ?? defaultDerivedDataPath(),
+    defaultDerivedDataPath(),
     ...configurationArgs(options.configuration),
     "-showBuildSettings", // Print target build settings instead of building.
     "-json", // Emit machine-readable settings.

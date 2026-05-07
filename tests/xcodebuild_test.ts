@@ -8,7 +8,6 @@ Deno.test("buildArgs constructs simulator xcodebuild command", () => {
     scheme: "Axion",
     destination: simulatorDevice,
     target: "sim",
-    derivedData: ".newton/DerivedData",
   });
 
   assertEquals(args.includes("-project"), true);
@@ -25,7 +24,6 @@ Deno.test("buildArgs passes custom configuration names through to xcodebuild", (
     configuration: "Debug Staging",
     destination: simulatorDevice,
     target: "sim",
-    derivedData: ".newton/DerivedData",
   });
 
   assertEquals(args.includes("-configuration"), true);

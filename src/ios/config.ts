@@ -3,7 +3,7 @@ import { exists, relative, resolve } from "../util/paths.ts";
 import { runCliCommand } from "../util/process.ts";
 import { discoverProject, XcodeContainer } from "./project.ts";
 import { resolveSimulator } from "./simulator.ts";
-import { resolveDerivedData, showBuildSettings } from "./xcodebuild.ts";
+import { showBuildSettings } from "./xcodebuild.ts";
 
 export const CONFIG_FILE = "newton.json";
 
@@ -81,7 +81,6 @@ async function resolveAppSettings(options: {
     scheme: options.scheme,
     destination: options.simulator,
     target: "sim",
-    derivedData: resolveDerivedData(),
   });
   const appTarget = settings.find((target) => target.buildSettings?.WRAPPER_NAME?.endsWith(".app"));
   const buildSettings = appTarget?.buildSettings;

@@ -11,15 +11,14 @@ export async function previewCommand(name: string, opts: PreviewCliOptions): Pro
   await runApp({
     ...runOpts,
     appArgs: [...(runOpts.appArgs ?? []), "-NewtonPreview", name],
-    logs: opts.logs ?? false,
+    logs: false,
   });
   await new Promise((resolve) => setTimeout(resolve, delay * 1000));
 
   const path = await captureScreenshot({
     output: opts.output,
     display,
-    sim: opts.sim ?? runOpts.sim,
-    udid: opts.udid ?? runOpts.udid,
+    sim: runOpts.sim,
   });
   console.log(`Saved preview screenshot: ${path}`);
 }

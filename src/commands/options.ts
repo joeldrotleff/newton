@@ -17,17 +17,9 @@ export interface CreateCommandOptions {
 }
 
 export interface RunCliOptions {
-  scheme?: string;
-  project?: string;
-  workspace?: string;
-  configuration?: string;
-  derivedData?: string;
-  sim?: string;
-  udid?: string;
   idiom?: "iphone" | "ipad";
   appStore?: "iphone" | "ipad";
   device?: string | boolean;
-  logs?: boolean;
   detach?: boolean;
   logLevel?: string;
   logFilter?: string;
@@ -42,12 +34,10 @@ export interface ScreenshotCliOptions {
   udid?: string;
 }
 
-export interface PreviewCliOptions extends RunCliOptions, ScreenshotCliOptions {
+export interface PreviewCliOptions extends RunCliOptions {
+  output?: string;
+  display?: ScreenshotDisplay;
   delay?: number;
-}
-
-export interface LspCliOptions extends RunCliOptions {
-  sourceRoot?: string;
 }
 
 export interface SimsCliOptions {
@@ -59,26 +49,24 @@ export interface CleanSimsCliOptions {
   runtime?: string;
 }
 
-// Resolves run options by layering CLI flags over the project's newton.json defaults.
+// Resolves run options from newton.json plus CLI-only flags (idiom, device, logging, etc.).
 export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions> {
   const config = await loadConfig();
   // --device (with or without a value) selects a connected device; otherwise use the simulator.
   const deviceName = typeof opts.device === "string" ? opts.device : undefined;
   const target = opts.device ? "device" : "sim";
   return {
-    scheme: opts.scheme ?? config.scheme,
-    project: opts.project ?? config.project,
-    workspace: opts.workspace ?? config.workspace,
+    scheme: config.scheme,
+    project: config.project,
+    workspace: config.workspace,
     target,
-    configuration: opts.configuration ?? config.configuration,
-    derivedData: opts.derivedData,
+    configuration: config.configuration,
     appName: config.appName,
-    sim: opts.sim ?? config.preferredSimulator,
-    udid: opts.udid,
+    sim: config.preferredSimulator,
     idiom: opts.idiom,
     appStore: opts.appStore,
     device: deviceName,
-    logs: opts.detach ? false : opts.logs,
+    logs: !opts.detach,
     logLevel: opts.logLevel,
     logFilter: opts.logFilter,
     appArgs: opts.appArg ?? [],

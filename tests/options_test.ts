@@ -53,3 +53,54 @@ Deno.test("resolveRunOptions treats --detach as launch without logs", async () =
     await Deno.remove(tempDir, { recursive: true });
   }
 });
+
+Deno.test("resolveRunOptions maps boolean --device to device target with no name", async () => {
+  const cwd = Deno.cwd();
+  const tempDir = await Deno.makeTempDir();
+  try {
+    Deno.chdir(tempDir);
+    await Deno.writeTextFile(CONFIG_FILE, JSON.stringify({}));
+
+    const options = await resolveRunOptions({ device: true });
+
+    assertEquals(options.target, "device");
+    assertEquals(options.device, undefined);
+  } finally {
+    Deno.chdir(cwd);
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
+Deno.test("resolveRunOptions passes --device <name> through as device name", async () => {
+  const cwd = Deno.cwd();
+  const tempDir = await Deno.makeTempDir();
+  try {
+    Deno.chdir(tempDir);
+    await Deno.writeTextFile(CONFIG_FILE, JSON.stringify({}));
+
+    const options = await resolveRunOptions({ device: "My iPhone" });
+
+    assertEquals(options.target, "device");
+    assertEquals(options.device, "My iPhone");
+  } finally {
+    Deno.chdir(cwd);
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
+Deno.test("resolveRunOptions defaults to sim target and renames appArg to appArgs", async () => {
+  const cwd = Deno.cwd();
+  const tempDir = await Deno.makeTempDir();
+  try {
+    Deno.chdir(tempDir);
+    await Deno.writeTextFile(CONFIG_FILE, JSON.stringify({}));
+
+    const options = await resolveRunOptions({ appArg: ["--seed", "42"] });
+
+    assertEquals(options.target, "sim");
+    assertEquals(options.appArgs, ["--seed", "42"]);
+  } finally {
+    Deno.chdir(cwd);
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});

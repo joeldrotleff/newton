@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { SimulatorDevice } from "../src/ios/simulator.ts";
+import { IOSDevice } from "../src/ios/device.ts";
 import { buildArgs } from "../src/ios/xcodebuild.ts";
 
 Deno.test("buildArgs constructs simulator xcodebuild command", () => {
@@ -30,6 +31,43 @@ Deno.test("buildArgs passes custom configuration names through to xcodebuild", (
   assertEquals(args.includes("Debug Staging"), true);
 });
 
+Deno.test("buildArgs targets a connected device with id= destination and no sim code-signing override", () => {
+  const args = buildArgs({
+    container: { kind: "project", path: "/tmp/Axion.xcodeproj" },
+    scheme: "Axion",
+    destination: deviceDestination,
+    target: "device",
+  });
+
+  assertEquals(args.includes("platform=iOS,id=HARDWARE-UDID"), true);
+  assertEquals(args.includes("CODE_SIGN_IDENTITY=-"), false);
+});
+
+Deno.test("buildArgs falls back to identifier when device hardwareUdid is missing", () => {
+  const args = buildArgs({
+    container: { kind: "project", path: "/tmp/Axion.xcodeproj" },
+    scheme: "Axion",
+    destination: { name: "iPhone", identifier: "DEVICE-ID" },
+    target: "device",
+  });
+
+  assertEquals(args.includes("platform=iOS,id=DEVICE-ID"), true);
+});
+
+Deno.test("buildArgs prepends 'clean' when action is 'clean build'", () => {
+  const args = buildArgs({
+    container: { kind: "project", path: "/tmp/Axion.xcodeproj" },
+    scheme: "Axion",
+    destination: simulatorDevice,
+    target: "sim",
+    action: "clean build",
+  });
+
+  const cleanIndex = args.indexOf("clean");
+  const buildIndex = args.indexOf("build");
+  assertEquals(cleanIndex >= 0 && buildIndex > cleanIndex, true);
+});
+
 const simulatorDevice: SimulatorDevice = {
   name: "iPhone 17",
   udid: "SIM-UDID",
@@ -38,4 +76,10 @@ const simulatorDevice: SimulatorDevice = {
   runtimeVersion: "18.0",
   versionParts: [18, 0],
   isAvailable: true,
+};
+
+const deviceDestination: IOSDevice = {
+  name: "My iPhone",
+  identifier: "DEVICE-ID",
+  hardwareUdid: "HARDWARE-UDID",
 };

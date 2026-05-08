@@ -75,13 +75,16 @@ Example `newton.json`:
 
 ```json
 {
-  "scheme": "AtomChatbot",
-  "project": "frontend/AtomChatbot/AtomChatbot.xcodeproj",
+  "scheme": "MyApp",
+  "project": "ios/MyApp.xcodeproj",
+  "configuration": "Debug",
+  "appName": "MyApp",
   "preferredSimulator": "iPhone 17"
 }
 ```
 
 Use `workspace` instead of `project` when the selected Xcode container is an `.xcworkspace`.
+All fields are optional; `newton init` writes them based on the current Xcode project.
 
 ## Command reference
 
@@ -154,42 +157,48 @@ subject's `OU` value as the Xcode `DEVELOPMENT_TEAM` id.
 
 ```sh
 newton open
-newton open --project ios/Axion.xcodeproj
-newton open --workspace ios/Axion.xcworkspace
 ```
 
-Opens the discovered or configured Xcode project/workspace.
+Opens the Xcode project/workspace recorded in `newton.json`.
 
 ### Build
 
 ```sh
 newton build
-newton build --scheme Axion
-newton build --scheme Axion --project ios/Axion.xcodeproj
-newton build --scheme Axion --workspace ios/Axion.xcworkspace
-newton build --scheme Axion --sim "iPhone 17 Pro"
-newton build --scheme Axion --device "Joel's iPhone"
+newton build --idiom ipad
+newton build --app-store iphone
+newton build --device
+newton build --device "Joel's iPhone"
+newton build --verbose
 ```
 
-Builds the selected scheme with `xcodebuild`. If `newton.json` exists, `--scheme`,
-`--project`/`--workspace`, and `--sim` can be omitted.
+Builds the configured scheme with `xcodebuild`. Scheme, project/workspace, and configuration come
+from `newton.json`. Use `--idiom` or `--app-store` to pick a simulator other than the default, or
+`--device` to target a connected device.
+
+### Build log
+
+```sh
+newton build-log
+```
+
+Opens the most recent `xcodebuild` log (under `.newton/logs/`) in `$VISUAL`, `$EDITOR`, or `nvim`.
 
 ### Run
 
 ```sh
 newton run
 newton run --detach
-newton run --no-logs
-newton run --logs --log-level debug --log-filter chat,sse
+newton run --log-level debug --log-filter chat
 newton run --app-store iphone --detach
-newton run --device "Joel's iPhone" --detach
 newton run --device --detach
+newton run --device "Joel's iPhone"
 ```
 
 Builds, installs, and launches the app on a simulator or connected device.
 
-By default, `run` attaches to the app console. Use `--detach` (or `--no-logs`) to launch the app and
-then disconnect without streaming logs.
+By default, `run` attaches to the app console. Use `--detach` to launch the app and then disconnect
+without streaming logs.
 
 Convenience logging flags are passed as app launch arguments:
 
@@ -209,13 +218,14 @@ newton run --app-arg -SomeFlag --app-arg value
 ```sh
 newton screenshot
 newton screenshot --output .newton/screenshots/home.png
+newton screenshot --sim "iPhone 17 Pro"
 newton screenshot --display inline
 newton screenshot --display open
 newton screenshot --display none
 ```
 
 Captures the selected simulator screen using `xcrun simctl io screenshot`. By default, Newton uses
-the configured preferred simulator or its normal default simulator selection.
+the `preferredSimulator` from `newton.json`, or its normal default simulator selection.
 
 ### SwiftUI preview host workflow
 
@@ -232,11 +242,10 @@ This requires app-side opt-in code that maps preview names to SwiftUI views.
 
 ```sh
 newton lsp
-newton lsp --scheme Axion
-newton lsp --scheme Axion --source-root ios/Axion/Axion
 ```
 
-Generates `buildServer.json` for SourceKit-LSP using Newton's derived data root.
+Generates `buildServer.json` for SourceKit-LSP using Newton's derived data root and the scheme from
+`newton.json`. Takes no options.
 
 Install the dependency if needed:
 
@@ -248,12 +257,11 @@ brew install xcode-build-server
 
 Newton resolves the Xcode container in this order:
 
-1. `--project` or `--workspace`
-2. `newton.json`
-3. recursive search from the current directory
+1. `project` or `workspace` from `newton.json`
+2. recursive search from the current directory
 
 Recursive discovery ignores common generated directories such as `.git`, `.build`, `DerivedData`,
-`node_modules`, and `.newton`.
+`node_modules`, and `.newton`. SPM-generated `.swiftpm/.../package.xcworkspace` is also skipped.
 
 ## Simulator selection
 
@@ -265,8 +273,10 @@ Default simulator selection is deterministic:
 4. prefer standard current devices before oversized devices
 5. prefer newer hardware generation
 
-Use `--sim "Exact Simulator Name"` to pin a device, or `--app-store iphone|ipad` to choose a
-simulator suitable for App Store screenshot dimensions.
+Set `preferredSimulator` in `newton.json` to pin a default. Use `--idiom ipad` to switch idiom, or
+`--app-store iphone|ipad` to choose a simulator whose screenshot resolution matches App Store
+Connect requirements. The `screenshot` command additionally accepts `--sim "Exact Name"`/`--udid` to
+override the default for a single capture.
 
 ## Development
 

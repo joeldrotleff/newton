@@ -1,4 +1,4 @@
-import { loadConfig } from "../ios/config.ts";
+import { loadConfig, missingRequiredConfigFieldMessage } from "../ios/config.ts";
 import { containerArgs, defaultDerivedDataPath, discoverProject } from "../ios/project.ts";
 import { fail } from "../util/errors.ts";
 import { join } from "../util/paths.ts";
@@ -7,7 +7,7 @@ import { executableExists, runCliCommand, runCliCommandInTerminal } from "../uti
 // Generates SourceKit-LSP support files via xcode-build-server using the project's newton.json.
 export async function lspCommand(): Promise<void> {
   const config = await loadConfig();
-  if (!config.scheme) fail("Missing scheme in newton.json. Run `newton init`.");
+  if (!config.scheme) fail(await missingRequiredConfigFieldMessage("scheme"));
   if (!await executableExists("xcode-build-server")) {
     fail("Missing xcode-build-server. Install it with:\n  brew install xcode-build-server");
   }

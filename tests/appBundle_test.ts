@@ -40,7 +40,7 @@ Deno.test("locateBuiltApp requires appName from newton config", async () => {
   await assertRejects(
     () => locateBuiltApp(buildOptions(fixture, { target: "sim" })),
     Error,
-    "Missing appName in newton.json",
+    "No newton.json found",
   );
 });
 

@@ -1,5 +1,5 @@
 import { fail } from "../util/errors.ts";
-import { exists, relative, resolve } from "../util/paths.ts";
+import { dirname, exists, relative, resolve } from "../util/paths.ts";
 import { runCliCommand } from "../util/process.ts";
 import { discoverProject, XcodeContainer } from "./project.ts";
 import { resolveSimulator } from "./simulator.ts";
@@ -20,6 +20,40 @@ export async function loadConfig(cwd = Deno.cwd()): Promise<NewtonConfig> {
   const path = resolve(cwd, CONFIG_FILE);
   if (!await exists(path)) return {};
   return JSON.parse(await Deno.readTextFile(path));
+}
+
+export async function missingRequiredConfigFieldMessage(
+  field: keyof NewtonConfig,
+  cwd = Deno.cwd(),
+): Promise<string> {
+  const localConfigPath = resolve(cwd, CONFIG_FILE);
+  if (await exists(localConfigPath)) {
+    return `${CONFIG_FILE} exists at ${localConfigPath} but is missing required field "${field}".\n` +
+      `Add "${field}" or rerun \`newton init --force\` from ${cwd}.`;
+  }
+
+  const parentConfigPath = await findParentConfig(cwd);
+  if (parentConfigPath) {
+    const parentDir = dirname(parentConfigPath);
+    return `No ${CONFIG_FILE} found in ${cwd}.\n` +
+      `Found ${parentConfigPath} in a parent directory. Run Newton from ${parentDir}, or run \`newton init\` here.`;
+  }
+
+  return `No ${CONFIG_FILE} found in ${cwd}.\n` +
+    `Newton reads ${CONFIG_FILE} from the current directory. If your config lives in a parent directory, run Newton from that directory.\n` +
+    `Run \`newton init\` to create one here.`;
+}
+
+async function findParentConfig(cwd: string): Promise<string | null> {
+  let dir = dirname(resolve(cwd));
+  while (true) {
+    const candidate = resolve(dir, CONFIG_FILE);
+    if (await exists(candidate)) return candidate;
+
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
 }
 
 export async function writeInitialConfig(options: { force?: boolean } = {}): Promise<NewtonConfig> {

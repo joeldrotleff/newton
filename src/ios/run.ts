@@ -1,4 +1,5 @@
 import { fail } from "../util/errors.ts";
+import { missingRequiredConfigFieldMessage } from "./config.ts";
 import { runCliCommand } from "../util/process.ts";
 import { locateBuiltApp, readBundleId } from "./appBundle.ts";
 import { installDeviceApp, launchDeviceApp, resolveDevice } from "./device.ts";
@@ -25,7 +26,7 @@ export interface RunOptions {
 }
 
 export async function runApp(options: RunOptions): Promise<void> {
-  if (!options.scheme) fail("Missing scheme in newton.json. Run `newton init`.");
+  if (!options.scheme) fail(await missingRequiredConfigFieldMessage("scheme"));
   const target = options.target ?? "sim";
   const container = await discoverProject();
   const appArgs = launchArguments(options);

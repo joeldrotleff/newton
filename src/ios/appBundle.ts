@@ -1,11 +1,12 @@
 import { fail } from "../util/errors.ts";
+import { missingRequiredConfigFieldMessage } from "./config.ts";
 import { exists, join } from "../util/paths.ts";
 import { runCliCommand } from "../util/process.ts";
 import { defaultDerivedDataPath } from "./project.ts";
 import { BuildOptions } from "./xcodebuild.ts";
 
 export async function locateBuiltApp(options: BuildOptions): Promise<string> {
-  if (!options.appName) fail("Missing appName in newton.json. Run `newton init --force`.");
+  if (!options.appName) fail(await missingRequiredConfigFieldMessage("appName"));
   const configuration = options.configuration ?? "Debug";
   const sdk = options.target === "device" ? "iphoneos" : "iphonesimulator";
   const appPath = join(

@@ -209,6 +209,7 @@ export class BuildLogger {
     this.stopSpinner();
     if (this.logHandle) {
       await this.logHandle.close();
+      this.logHandle = null;
     }
   }
 

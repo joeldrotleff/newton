@@ -56,10 +56,12 @@ export async function build(options: BuildOptions): Promise<void> {
     const elapsed = formatDuration(performance.now() - startedAt);
 
     if (result.code !== 0) {
-      const errorLine = summary.firstError || summary.lastError || "Build failed";
+      await logger.close();
+      const logContents = await readBuildLog(logPath);
+      const diagnostic = formatBuildFailureDiagnostic(logContents, summary);
 
       console.error(`\n❌ Build failed in ${elapsed}`);
-      console.error(`Error: ${errorLine}`);
+      console.error(diagnostic);
       console.error(formatBuildSummary(summary));
       console.error(`\nFull build log: ${logPath}\n`);
       Deno.exit(result.code);
@@ -109,6 +111,55 @@ function formatBuildSummary(summary: {
   if (summary.errors > 0) parts.push(`${summary.errors} errors`);
   if (summary.packages > 0) parts.push(`${summary.packages} packages`);
   return parts.length ? ` · ${parts.join(" · ")}` : "";
+}
+
+async function readBuildLog(path: string): Promise<string> {
+  try {
+    return await Deno.readTextFile(path);
+  } catch {
+    return "";
+  }
+}
+
+function formatBuildFailureDiagnostic(
+  logContents: string,
+  summary: { firstError?: string; lastError?: string },
+): string {
+  const platformError = formatMissingPlatformDiagnostic(logContents);
+  if (platformError) return platformError;
+
+  const errorLines = extractErrorLines(logContents);
+  if (errorLines.length === 1) return `Error: ${errorLines[0]}`;
+  if (errorLines.length > 1) {
+    return `Errors:\n${errorLines.slice(0, 3).map((line) => `  ${line}`).join("\n")}`;
+  }
+
+  const fallback = summary.firstError || summary.lastError;
+  return fallback ? `Error: ${fallback}` : "Build command failed.";
+}
+
+function formatMissingPlatformDiagnostic(logContents: string): string | null {
+  const match = logContents.match(/iOS\s+([\d.]+)\s+is not installed/i);
+  if (!match) return null;
+
+  return `Error: iOS ${match[1]} is not installed for the selected destination.\n` +
+    "Install it from Xcode > Settings > Components, then try again.";
+}
+
+function extractErrorLines(logContents: string): string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+
+  for (const line of logContents.split(/\r?\n/)) {
+    const text = line.trim();
+    if (!/\berror[: ]/i.test(text)) continue;
+    if (seen.has(text)) continue;
+
+    seen.add(text);
+    lines.push(text);
+  }
+
+  return lines;
 }
 
 export interface BuildSettings {

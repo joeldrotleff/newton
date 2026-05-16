@@ -141,9 +141,15 @@ export function buildCli() {
           "Pick a simulator whose resolution matches App Store Connect screenshot requirements",
         )
         .option("--device [name:string]", "Build for a connected device (optional name)")
+        .option(
+          "-D, --define <name:string>",
+          "Swift compile-time conditional (repeatable). Equivalent to swiftc -D <name>.",
+          { collect: true },
+        )
         .option("--verbose", "Print verbose xcodebuild output")
         .example("Build for sim", "newton build")
         .example("Build for device", "newton build --device")
+        .example("Active compile flag", "newton build -D LOCALHOST_BACKEND")
         .action((options) => buildCommand(options)),
     )
     //
@@ -174,10 +180,16 @@ export function buildCli() {
         .option("--log-level <level:string>", "os_log level filter (e.g. debug, info)")
         .option("--log-filter <predicate:string>", "os_log NSPredicate filter")
         .option("--app-arg <arg:string>", "Extra launch argument (repeatable)", { collect: true })
+        .option(
+          "-D, --define <name:string>",
+          "Swift compile-time conditional (repeatable). Equivalent to swiftc -D <name>.",
+          { collect: true },
+        )
         .option("--verbose", "Print verbose xcodebuild output")
         .example("Run on default sim", "newton run")
         .example("Run detached", "newton run --detach")
         .example("Run on device", "newton run --device")
+        .example("Active compile flag", "newton run -D LOCALHOST_BACKEND")
         .action((options) => runCommand(options)),
     )
     //

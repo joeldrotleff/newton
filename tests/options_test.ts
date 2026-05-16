@@ -88,6 +88,31 @@ Deno.test("resolveRunOptions passes --device <name> through as device name", asy
   }
 });
 
+Deno.test("resolveRunOptions expands --define values into -D NAME swift flag pairs", async () => {
+  const cwd = Deno.cwd();
+  const tempDir = await Deno.makeTempDir();
+  try {
+    Deno.chdir(tempDir);
+    await Deno.writeTextFile(CONFIG_FILE, JSON.stringify({}));
+
+    const withDefines = await resolveRunOptions({
+      define: ["LOCALHOST_BACKEND", "DEBUG_EXTRA"],
+    });
+    const noDefines = await resolveRunOptions({});
+
+    assertEquals(withDefines.swiftFlags, [
+      "-D",
+      "LOCALHOST_BACKEND",
+      "-D",
+      "DEBUG_EXTRA",
+    ]);
+    assertEquals(noDefines.swiftFlags, []);
+  } finally {
+    Deno.chdir(cwd);
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
 Deno.test("resolveRunOptions defaults to sim target and renames appArg to appArgs", async () => {
   const cwd = Deno.cwd();
   const tempDir = await Deno.makeTempDir();

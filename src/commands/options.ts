@@ -24,6 +24,7 @@ export interface RunCliOptions {
   logLevel?: string;
   logFilter?: string;
   appArg?: string[];
+  define?: string[];
   verbose?: boolean;
 }
 
@@ -70,6 +71,9 @@ export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions
     logLevel: opts.logLevel,
     logFilter: opts.logFilter,
     appArgs: opts.appArg ?? [],
+    // Each --define NAME expands to two argv tokens (`-D`, `NAME`) so they survive
+    // xcodebuild's OTHER_SWIFT_FLAGS parsing intact for swiftc.
+    swiftFlags: (opts.define ?? []).flatMap((name) => ["-D", name]),
     verbose: opts.verbose ?? false,
   };
 }

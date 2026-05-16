@@ -23,6 +23,7 @@ export interface RunOptions {
   logLevel?: string;
   logFilter?: string;
   appArgs?: string[];
+  swiftFlags?: string[];
   verbose?: boolean;
 }
 

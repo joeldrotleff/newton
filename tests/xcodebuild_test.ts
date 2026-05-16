@@ -54,6 +54,37 @@ Deno.test("buildArgs falls back to identifier when device hardwareUdid is missin
   assertEquals(args.includes("platform=iOS,id=DEVICE-ID"), true);
 });
 
+Deno.test("buildArgs joins swiftFlags into a single OTHER_SWIFT_FLAGS setting", () => {
+  const args = buildArgs({
+    container: { kind: "project", path: "/tmp/Axion.xcodeproj" },
+    scheme: "Axion",
+    destination: simulatorDevice,
+    target: "sim",
+    swiftFlags: ["-D", "LOCALHOST_BACKEND", "-D", "DEBUG_EXTRA"],
+  });
+
+  assertEquals(args.includes("OTHER_SWIFT_FLAGS=-D LOCALHOST_BACKEND -D DEBUG_EXTRA"), true);
+});
+
+Deno.test("buildArgs omits OTHER_SWIFT_FLAGS when swiftFlags is empty or absent", () => {
+  const empty = buildArgs({
+    container: { kind: "project", path: "/tmp/Axion.xcodeproj" },
+    scheme: "Axion",
+    destination: simulatorDevice,
+    target: "sim",
+    swiftFlags: [],
+  });
+  const absent = buildArgs({
+    container: { kind: "project", path: "/tmp/Axion.xcodeproj" },
+    scheme: "Axion",
+    destination: simulatorDevice,
+    target: "sim",
+  });
+
+  assertEquals(empty.some((a) => a.startsWith("OTHER_SWIFT_FLAGS=")), false);
+  assertEquals(absent.some((a) => a.startsWith("OTHER_SWIFT_FLAGS=")), false);
+});
+
 Deno.test("buildArgs prepends 'clean' when action is 'clean build'", () => {
   const args = buildArgs({
     container: { kind: "project", path: "/tmp/Axion.xcodeproj" },

@@ -15,6 +15,7 @@ export interface BuildOptions {
   appName?: string;
   destination: SimulatorDevice | IOSDevice;
   target: "sim" | "device";
+  swiftFlags?: string[];
   verbose?: boolean;
   action?: "build" | "clean build";
 }
@@ -87,12 +88,20 @@ export function buildArgs(options: BuildOptions): string[] {
     ...configurationArgs(options.configuration),
     "ONLY_ACTIVE_ARCH=YES", // Build only the selected destination architecture for faster local runs.
     ...(options.target === "sim" ? ["CODE_SIGN_IDENTITY=-"] : []), // Simulators do not need code signing.
+    ...swiftFlagsArgs(options.swiftFlags),
     ...actions,
   ];
 }
 
 function configurationArgs(configuration?: string): string[] {
   return configuration ? ["-configuration", configuration] : [];
+}
+
+// Appended to xcodebuild as a single OTHER_SWIFT_FLAGS=... setting, joined by spaces.
+// Lets callers add Swift compiler flags such as -D MY_FLAG without shelling out themselves.
+function swiftFlagsArgs(swiftFlags?: string[]): string[] {
+  if (!swiftFlags || swiftFlags.length === 0) return [];
+  return [`OTHER_SWIFT_FLAGS=${swiftFlags.join(" ")}`];
 }
 
 function formatDuration(milliseconds: number): string {

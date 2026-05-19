@@ -29,6 +29,7 @@ export class BuildLogger {
   private logFile: string;
   private logHandle: Deno.FsFile | null = null;
   private cursorHidden = false;
+  private readonly interactive = Deno.stdout.isTerminal();
   private summary: BuildSummary = {
     compiledFiles: 0,
     warnings: 0,
@@ -157,16 +158,20 @@ export class BuildLogger {
   private finishCurrentPhase(symbol: "✓" | "✗"): void {
     if (this.currentStartedAt === 0) return;
 
-    Deno.stdout.writeSync(encoder.encode(CLEAR_LINE));
-    console.log(
-      `${symbol} ${this.currentStatus} · ${
-        formatDuration(performance.now() - this.currentStartedAt)
-      }`,
-    );
+    if (this.interactive) {
+      Deno.stdout.writeSync(encoder.encode(CLEAR_LINE));
+      console.log(
+        `${symbol} ${this.currentStatus} · ${
+          formatDuration(performance.now() - this.currentStartedAt)
+        }`,
+      );
+    }
     this.currentStartedAt = 0;
   }
 
   private updateSpinner(): void {
+    if (!this.interactive) return;
+
     // Clear previous spinner line
     Deno.stdout.writeSync(encoder.encode(CLEAR_LINE));
 
@@ -181,12 +186,11 @@ export class BuildLogger {
       return;
     }
 
-    if (Deno.stdout.isTerminal()) {
-      Deno.stdout.writeSync(encoder.encode(HIDE_CURSOR));
-      this.cursorHidden = true;
-    }
-
     this.currentStartedAt = performance.now();
+    if (!this.interactive) return;
+
+    Deno.stdout.writeSync(encoder.encode(HIDE_CURSOR));
+    this.cursorHidden = true;
     this.updateSpinner();
     this.spinnerTimer = setInterval(() => {
       this.frameIndex++;
@@ -199,6 +203,8 @@ export class BuildLogger {
       clearInterval(this.spinnerTimer);
       this.spinnerTimer = undefined;
     }
+
+    if (!this.interactive) return;
 
     const output = this.cursorHidden ? `${CLEAR_LINE}${SHOW_CURSOR}` : CLEAR_LINE;
     Deno.stdout.writeSync(encoder.encode(output));

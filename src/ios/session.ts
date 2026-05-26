@@ -43,12 +43,12 @@ export async function removeSession(cwd = Deno.cwd()): Promise<void> {
   }
 }
 
-// Check if a PID is still alive.
-export function isProcessAlive(pid: number): boolean {
-  try {
-    Deno.kill(pid, "SIGCONT"); // Signal 0 equivalent — doesn't kill, just checks.
-    return true;
-  } catch {
-    return false;
-  }
+// Check if a PID is still alive using kill -0 (signal 0 = existence check, no actual signal sent).
+export async function isProcessAlive(pid: number): Promise<boolean> {
+  const result = await new Deno.Command("kill", {
+    args: ["-0", String(pid)],
+    stdout: "null",
+    stderr: "null",
+  }).output();
+  return result.code === 0;
 }

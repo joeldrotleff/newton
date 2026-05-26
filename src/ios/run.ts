@@ -136,16 +136,17 @@ async function reloadLoop(
   appArgs: string[],
   cwd: string,
 ): Promise<void> {
-  const appPath = await locateBuiltApp({
-    ...options,
-    container,
-    scheme: options.scheme!,
-    destination: simulator,
-    target: "sim",
-  });
-  const bundleId = await readBundleId(appPath);
-
   while (true) {
+    // Re-read after each build so we pick up any changes from the latest rebuild.
+    const appPath = await locateBuiltApp({
+      ...options,
+      container,
+      scheme: options.scheme!,
+      destination: simulator,
+      target: "sim",
+    });
+    const bundleId = await readBundleId(appPath);
+
     // Spawn log-streaming process.
     const logProcess = new Deno.Command("xcrun", {
       args: [
@@ -165,46 +166,42 @@ async function reloadLoop(
     const signal = await raceProcessAndSignal(logProcess);
 
     if (signal === "exited") {
-      // App exited on its own (crash, user quit, etc.) — we're done.
       break;
     }
 
+    await terminateChild(logProcess);
+
     if (signal === "interrupted") {
-      // Ctrl-C — kill the child, clean up, and re-raise SIGINT for the shell.
-      try {
-        logProcess.kill("SIGTERM");
-      } catch { /* already exited */ }
-      try {
-        await logProcess.status;
-      } catch { /* ignore */ }
       await removeSession(cwd);
       // Re-raise SIGINT so the shell sees a proper signal exit and redraws the prompt.
       Deno.kill(Deno.pid, "SIGINT");
       return;
     }
 
-    // Reload requested — kill the log stream, rebuild, and restart.
+    // Reload requested.
     console.log("\n⟳ Reload signal received — rebuilding…");
-    try {
-      logProcess.kill("SIGTERM");
-    } catch {
-      // Already exited.
-    }
-    try {
-      await logProcess.status;
-    } catch {
-      // Ignore.
-    }
-
     try {
       await buildInstallLaunch(options, container, simulator, appArgs);
     } catch (err) {
       console.error(`\n✗ Reload build failed: ${err}`);
       console.log("Waiting for next reload signal…");
-      // Wait for another SIGUSR1 before retrying.
-      await waitForSignal();
+      const retry = await waitForReloadOrInterrupt();
+      if (retry === "interrupted") {
+        await removeSession(cwd);
+        Deno.kill(Deno.pid, "SIGINT");
+        return;
+      }
     }
   }
+}
+
+async function terminateChild(process: Deno.ChildProcess): Promise<void> {
+  try {
+    process.kill("SIGTERM");
+  } catch { /* already exited */ }
+  try {
+    await process.status;
+  } catch { /* ignore */ }
 }
 
 type LoopSignal = "reload" | "exited" | "interrupted";
@@ -243,14 +240,26 @@ function raceProcessAndSignal(process: Deno.ChildProcess): Promise<LoopSignal> {
   });
 }
 
-// Block until SIGUSR1 is received.
-function waitForSignal(): Promise<void> {
-  return new Promise<void>((resolve) => {
-    const handler = () => {
-      Deno.removeSignalListener("SIGUSR1", handler);
-      resolve();
+// Block until SIGUSR1 (reload) or SIGINT (quit) is received.
+function waitForReloadOrInterrupt(): Promise<"reload" | "interrupted"> {
+  return new Promise<"reload" | "interrupted">((resolve) => {
+    let settled = false;
+    const onReload = () => {
+      if (settled) return;
+      settled = true;
+      Deno.removeSignalListener("SIGUSR1", onReload);
+      Deno.removeSignalListener("SIGINT", onInterrupt);
+      resolve("reload");
     };
-    Deno.addSignalListener("SIGUSR1", handler);
+    const onInterrupt = () => {
+      if (settled) return;
+      settled = true;
+      Deno.removeSignalListener("SIGUSR1", onReload);
+      Deno.removeSignalListener("SIGINT", onInterrupt);
+      resolve("interrupted");
+    };
+    Deno.addSignalListener("SIGUSR1", onReload);
+    Deno.addSignalListener("SIGINT", onInterrupt);
   });
 }
 

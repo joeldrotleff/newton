@@ -9,7 +9,7 @@ export async function psCommand(): Promise<void> {
     return;
   }
 
-  const alive = isProcessAlive(session.pid);
+  const alive = await isProcessAlive(session.pid);
   if (!alive) {
     console.log(`Stale session found (PID ${session.pid} is no longer running). Cleaning up.`);
     await removeSession();

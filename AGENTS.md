@@ -29,7 +29,8 @@ deno run --allow-run --allow-read --allow-write --allow-env src/main.ts <subcomm
   - [project.ts](src/ios/project.ts) — `discoverProject()` (config → fs scan)
   - [xcodebuild.ts](src/ios/xcodebuild.ts) — `buildArgs`, `build`, `showBuildSettings`
   - [simulator.ts](src/ios/simulator.ts) — `resolveSimulator`, idiom/App Store filters, ranking
-  - [run.ts](src/ios/run.ts) — `runApp` (build → install → launch → optional log stream)
+  - [run.ts](src/ios/run.ts) — `runApp` (build → install → launch → optional log stream + reload loop)
+  - [session.ts](src/ios/session.ts) — `.newton/run.json` session file for inter-process reload signaling
 - [src/util/](src/util/) — `errors.ts`, `paths.ts`, `process.ts`, `spinner.ts` (build progress)
 - [templates/](templates/) — starter SwiftUI project rendered by `newton create`
 - [tests/](tests/) — Deno test files; one per source module
@@ -40,6 +41,7 @@ deno run --allow-run --allow-read --allow-write --allow-env src/main.ts <subcomm
 - **DerivedData** always lives at `.newton/DerivedData` ([defaultDerivedDataPath](src/ios/project.ts#L77)). There is no override flag.
 - **Build logs** are written to `.newton/logs/<timestamp>.log` by [BuildLogger](src/util/spinner.ts); `newton build-log` opens the latest.
 - **`run` defaults to logs ON.** Use `--detach` to launch and exit. Preview never streams logs.
+- **`run` supports live reload.** When logs are enabled, `newton run` writes `.newton/run.json` (PID, scheme, simulator) and listens for `SIGUSR1`. Running `newton reload` in the same project sends the signal, causing a rebuild + relaunch on the same simulator without losing the terminal session. `newton ps` shows active sessions.
 - **`lsp` takes no flags** — it shells out to `xcode-build-server` using the config's scheme and Newton's derived data root, then writes `buildServer.json`.
 - **Project discovery** prefers `newton.json` > single `.xcworkspace` > single `.xcodeproj`. SPM-generated `.swiftpm/.../package.xcworkspace` is filtered out (commit `3b3c02b`).
 

@@ -33,6 +33,7 @@ export async function previewCommand(name: string, opts: PreviewCliOptions): Pro
   const path = await captureScreenshot({
     output: opts.output,
     display,
+    inlineWidth: opts.inlineWidth,
     udid: simulator.udid,
   });
   console.log(`Saved preview screenshot: ${path}`);

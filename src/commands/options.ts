@@ -31,6 +31,7 @@ export interface RunCliOptions {
 export interface ScreenshotCliOptions {
   output?: string;
   display?: ScreenshotDisplay;
+  inlineWidth?: number;
   sim?: string;
   udid?: string;
 }
@@ -39,6 +40,7 @@ export interface PreviewCliOptions extends RunCliOptions {
   output?: string;
   display?: ScreenshotDisplay;
   delay?: number;
+  inlineWidth?: number;
   openSimulator?: boolean;
 }
 
@@ -84,6 +86,7 @@ export async function resolveScreenshotOptions(opts: ScreenshotCliOptions) {
   return {
     output: opts.output,
     display: opts.display ?? "none" as const,
+    inlineWidth: opts.inlineWidth,
     sim: opts.sim ?? config.preferredSimulator,
     udid: opts.udid,
   };

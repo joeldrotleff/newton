@@ -206,6 +206,7 @@ export function buildCli() {
         .option("--display <mode:display>", "How to display the screenshot", {
           default: "none" as const,
         })
+        .option("--inline-width <columns:number>", "Terminal columns for inline image display")
         .example("Save to disk", "newton screenshot --output shot.png")
         .example("Inline preview", "newton screenshot --display inline")
         .action((options) => screenshotCommand(options)),
@@ -229,6 +230,7 @@ export function buildCli() {
         .option("--display <mode:display>", "How to display the screenshot", {
           default: "inline" as const,
         })
+        .option("--inline-width <columns:number>", "Terminal columns for inline image display")
         .option("--open-simulator", "Reveal Simulator.app while capturing the preview")
         .option("--delay <seconds:number>", "Seconds to wait before capturing", { default: 2 })
         .option("--app-arg <arg:string>", "Extra launch argument (repeatable)", { collect: true })

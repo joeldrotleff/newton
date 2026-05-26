@@ -220,6 +220,7 @@ newton screenshot
 newton screenshot --output .newton/screenshots/home.png
 newton screenshot --sim "iPhone 17 Pro"
 newton screenshot --display inline
+newton screenshot --display inline --inline-width 60
 newton screenshot --display open
 newton screenshot --display none
 ```
@@ -232,6 +233,7 @@ the `preferredSimulator` from `newton.json`, or its normal default simulator sel
 ```sh
 newton preview metricCards
 newton preview metricCards --display inline
+newton preview metricCards --inline-width 60
 newton preview metricCards --delay 3
 newton preview metricCards --open-simulator
 ```

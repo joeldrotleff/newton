@@ -8,6 +8,7 @@ export type ScreenshotDisplay = "inline" | "open" | "none";
 export interface ScreenshotOptions {
   output?: string;
   display?: ScreenshotDisplay;
+  inlineWidth?: number;
   sim?: string;
   udid?: string;
 }
@@ -26,11 +27,19 @@ export async function captureScreenshot(options: ScreenshotOptions = {}): Promis
     output,
   ]);
 
-  await displayScreenshot(output, options.display ?? "none");
+  await displayScreenshot(output, options.display ?? "none", { width: options.inlineWidth });
   return output;
 }
 
-export async function displayScreenshot(path: string, display: ScreenshotDisplay): Promise<void> {
+export interface InlineDisplayOptions {
+  width?: number;
+}
+
+export async function displayScreenshot(
+  path: string,
+  display: ScreenshotDisplay,
+  options: InlineDisplayOptions = {},
+): Promise<void> {
   if (display === "none") return;
   if (display === "open") {
     await runCliCommand("open", [
@@ -40,7 +49,7 @@ export async function displayScreenshot(path: string, display: ScreenshotDisplay
   }
 
   if (supportsKittyGraphics()) {
-    await displayKittyImage(path);
+    await displayKittyImage(path, options);
     return;
   }
   if (Deno.stdout.isTerminal() && Deno.env.get("TERM_PROGRAM") === "iTerm.app") {
@@ -52,6 +61,7 @@ export async function displayScreenshot(path: string, display: ScreenshotDisplay
   if (await executableExists("viu")) {
     await runCliCommandInTerminal("viu", [
       "--blocks", // Avoid terminal capability probes that can leak escape responses.
+      ...viuSizeArgs(options),
       path, // Render the screenshot inline with viu.
     ]);
     return;
@@ -88,18 +98,24 @@ function supportsKittyGraphics(): boolean {
   return termProgram === "ghostty" || term.includes("kitty") || Deno.env.has("KITTY_WINDOW_ID");
 }
 
-async function displayKittyImage(path: string): Promise<void> {
-  const columns = terminalColumns();
+async function displayKittyImage(path: string, options: InlineDisplayOptions): Promise<void> {
+  const columns = inlineColumns(options);
   const placement = columns ? `,c=${columns}` : "";
   const payload = btoa(path);
   console.log(`\u001b_Ga=T,t=f,f=100${placement};${payload}\u001b\\`);
 }
 
-function terminalColumns(): number | undefined {
+function viuSizeArgs(options: InlineDisplayOptions): string[] {
+  const columns = inlineColumns(options);
+  return columns ? ["--width", String(columns)] : [];
+}
+
+function inlineColumns(options: InlineDisplayOptions): number | undefined {
+  const width = options.width ?? 70;
   try {
-    return Math.min(Deno.consoleSize().columns, 120);
+    return Math.min(width, Deno.consoleSize().columns);
   } catch {
-    return undefined;
+    return width;
   }
 }
 

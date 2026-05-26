@@ -39,8 +39,19 @@ export async function displayScreenshot(path: string, display: ScreenshotDisplay
     return;
   }
 
+  if (supportsKittyGraphics()) {
+    await displayKittyImage(path);
+    return;
+  }
+  if (Deno.stdout.isTerminal() && Deno.env.get("TERM_PROGRAM") === "iTerm.app") {
+    const bytes = await Deno.readFile(path);
+    const base64 = bytesToBase64(bytes);
+    console.log(`\u001b]1337;File=inline=1:${base64}\u0007`);
+    return;
+  }
   if (await executableExists("viu")) {
     await runCliCommandInTerminal("viu", [
+      "--blocks", // Avoid terminal capability probes that can leak escape responses.
       path, // Render the screenshot inline with viu.
     ]);
     return;
@@ -65,14 +76,31 @@ export async function displayScreenshot(path: string, display: ScreenshotDisplay
     ]);
     return;
   }
-  if (Deno.env.get("TERM_PROGRAM") === "iTerm.app") {
-    const bytes = await Deno.readFile(path);
-    const base64 = bytesToBase64(bytes);
-    console.log(`\u001b]1337;File=inline=1:${base64}\u0007`);
-    return;
-  }
 
   fail("No inline image renderer found. Install viu, use --display open, or use --display none.");
+}
+
+function supportsKittyGraphics(): boolean {
+  if (!Deno.stdout.isTerminal()) return false;
+
+  const term = Deno.env.get("TERM") ?? "";
+  const termProgram = Deno.env.get("TERM_PROGRAM") ?? "";
+  return termProgram === "ghostty" || term.includes("kitty") || Deno.env.has("KITTY_WINDOW_ID");
+}
+
+async function displayKittyImage(path: string): Promise<void> {
+  const columns = terminalColumns();
+  const placement = columns ? `,c=${columns}` : "";
+  const payload = btoa(path);
+  console.log(`\u001b_Ga=T,t=f,f=100${placement};${payload}\u001b\\`);
+}
+
+function terminalColumns(): number | undefined {
+  try {
+    return Math.min(Deno.consoleSize().columns, 120);
+  } catch {
+    return undefined;
+  }
 }
 
 function bytesToBase64(bytes: Uint8Array): string {

@@ -29,6 +29,7 @@ export async function previewCommand(name: string, opts: PreviewCliOptions): Pro
   });
   await new Promise((resolve) => setTimeout(resolve, delay * 1000));
 
+  console.log(`Taking screenshot '${name}'…`);
   const path = await captureScreenshot({
     output: opts.output,
     display,

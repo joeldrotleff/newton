@@ -225,7 +225,6 @@ export function buildCli() {
           "--app-store <idiom:idiom>",
           "Pick a simulator whose resolution matches App Store Connect screenshot requirements",
         )
-        .option("--device [name:string]", "Run on a connected device (optional name)")
         .option("--output <path:file>", "Output screenshot file path")
         .option("--display <mode:display>", "How to display the screenshot", {
           default: "inline" as const,

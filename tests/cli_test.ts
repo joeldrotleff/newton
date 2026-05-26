@@ -26,7 +26,7 @@ Deno.test("buildCli registers all top-level subcommands", () => {
   ]);
 });
 
-Deno.test("preview subcommand declares display, delay, and app-arg options", () => {
+Deno.test("preview subcommand declares simulator screenshot options", () => {
   const preview = buildCli().getCommand("preview");
   if (!preview) throw new Error("preview command not found");
 
@@ -38,6 +38,7 @@ Deno.test("preview subcommand declares display, delay, and app-arg options", () 
       `expected --${flag} on 'preview', got: ${optionNames.join(", ")}`,
     );
   }
+  assertEquals(optionNames.includes("device"), false);
 });
 
 Deno.test("run subcommand declares detach option", () => {

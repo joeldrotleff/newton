@@ -16,6 +16,7 @@ export interface RunOptions {
   configuration?: string;
   appName?: string;
   sim?: string;
+  udid?: string;
   idiom?: "iphone" | "ipad";
   appStore?: "iphone" | "ipad";
   device?: string;
@@ -57,6 +58,7 @@ export async function runApp(options: RunOptions): Promise<void> {
 
   const simulator = await resolveSimulator({
     sim: options.sim,
+    udid: options.udid,
     idiom: options.idiom,
     appStore: options.appStore,
   });

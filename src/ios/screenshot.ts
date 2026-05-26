@@ -5,6 +5,8 @@ import { bootSimulator, resolveSimulator } from "./simulator.ts";
 
 export type ScreenshotDisplay = "inline" | "open" | "none";
 
+const DEFAULT_INLINE_WIDTH = 18;
+
 export interface ScreenshotOptions {
   output?: string;
   display?: ScreenshotDisplay;
@@ -111,7 +113,7 @@ function viuSizeArgs(options: InlineDisplayOptions): string[] {
 }
 
 function inlineColumns(options: InlineDisplayOptions): number | undefined {
-  const width = options.width ?? 70;
+  const width = options.width ?? DEFAULT_INLINE_WIDTH;
   try {
     return Math.min(width, Deno.consoleSize().columns);
   } catch {

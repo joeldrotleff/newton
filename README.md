@@ -225,8 +225,9 @@ newton screenshot --display open
 newton screenshot --display none
 ```
 
-Captures the selected simulator screen using `xcrun simctl io screenshot`. By default, Newton uses
-the `preferredSimulator` from `newton.json`, or its normal default simulator selection.
+Captures the selected simulator screen using `xcrun simctl io screenshot`. Inline terminal display
+uses a small preview by default; pass `--inline-width` to resize it. By default, Newton uses the
+`preferredSimulator` from `newton.json`, or its normal default simulator selection.
 
 ### SwiftUI preview host workflow
 

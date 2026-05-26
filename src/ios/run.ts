@@ -5,6 +5,7 @@ import { locateBuiltApp, readBundleId } from "./appBundle.ts";
 import { installDeviceApp, launchDeviceApp, resolveDevice } from "./device.ts";
 import { discoverProject } from "./project.ts";
 import { bootSimulator, launchSimulatorApp, openSimulator, resolveSimulator } from "./simulator.ts";
+import { removeSession, writeSession } from "./session.ts";
 import { build } from "./xcodebuild.ts";
 
 export interface RunOptions {
@@ -60,19 +61,50 @@ export async function runApp(options: RunOptions): Promise<void> {
   });
   await bootSimulator(simulator.udid);
   await openSimulator(simulator.udid);
+
+  // Write session file so `newton reload` can find this process.
+  const cwd = Deno.cwd();
+  await writeSession({
+    pid: Deno.pid,
+    scheme: options.scheme!,
+    simulatorUdid: simulator.udid,
+    simulatorName: simulator.name,
+    cwd,
+    startedAt: new Date().toISOString(),
+  });
+
+  try {
+    await buildInstallLaunch(options, container, simulator, appArgs);
+
+    // If logs are enabled, enter a reload loop that listens for SIGUSR1.
+    if (options.logs ?? true) {
+      await reloadLoop(options, container, simulator, appArgs);
+    }
+  } finally {
+    await removeSession(cwd);
+  }
+}
+
+// Build, install, terminate old instance, and launch the app.
+async function buildInstallLaunch(
+  options: RunOptions,
+  container: Awaited<ReturnType<typeof discoverProject>>,
+  simulator: Awaited<ReturnType<typeof resolveSimulator>>,
+  appArgs: string[],
+): Promise<void> {
   await build({
     ...options,
     container,
-    scheme: options.scheme,
+    scheme: options.scheme!,
     destination: simulator,
-    target,
+    target: "sim",
   });
   const appPath = await locateBuiltApp({
     ...options,
     container,
-    scheme: options.scheme,
+    scheme: options.scheme!,
     destination: simulator,
-    target,
+    target: "sim",
   });
   const bundleId = await readBundleId(appPath);
   await runCliCommand("xcrun", [
@@ -87,7 +119,110 @@ export async function runApp(options: RunOptions): Promise<void> {
     simulator.udid,
     appPath,
   ]);
-  await launchSimulatorApp(simulator.udid, bundleId, appArgs, options.logs ?? true);
+
+  if (!(options.logs ?? true)) {
+    // Detached mode — just launch without streaming.
+    await launchSimulatorApp(simulator.udid, bundleId, appArgs, false);
+  }
+}
+
+// Spawn the app with --console-pty for log streaming, but in a way we can kill and restart.
+// Waits for SIGUSR1 to trigger a reload cycle. Exits when the app process exits normally
+// (i.e., not killed by a reload).
+async function reloadLoop(
+  options: RunOptions,
+  container: Awaited<ReturnType<typeof discoverProject>>,
+  simulator: Awaited<ReturnType<typeof resolveSimulator>>,
+  appArgs: string[],
+): Promise<void> {
+  const appPath = await locateBuiltApp({
+    ...options,
+    container,
+    scheme: options.scheme!,
+    destination: simulator,
+    target: "sim",
+  });
+  const bundleId = await readBundleId(appPath);
+
+  while (true) {
+    // Spawn log-streaming process.
+    const logProcess = new Deno.Command("xcrun", {
+      args: [
+        "simctl",
+        "launch",
+        "--console-pty", // Stream app console output through this terminal.
+        simulator.udid,
+        bundleId,
+        ...appArgs,
+      ],
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+    }).spawn();
+
+    // Wait for either the process to exit or a SIGUSR1 reload signal.
+    const reloadRequested = await raceProcessAndSignal(logProcess);
+
+    if (!reloadRequested) {
+      // App exited on its own (crash, user quit, etc.) — we're done.
+      break;
+    }
+
+    // Reload requested — kill the log stream, rebuild, and restart.
+    console.log("\n⟳ Reload signal received — rebuilding…");
+    try {
+      logProcess.kill("SIGTERM");
+    } catch {
+      // Already exited.
+    }
+    try {
+      await logProcess.status;
+    } catch {
+      // Ignore.
+    }
+
+    try {
+      await buildInstallLaunch(options, container, simulator, appArgs);
+    } catch (err) {
+      console.error(`\n✗ Reload build failed: ${err}`);
+      console.log("Waiting for next reload signal…");
+      // Wait for another SIGUSR1 before retrying.
+      await waitForSignal();
+    }
+  }
+}
+
+// Race between process exit and SIGUSR1. Returns true if reload was requested.
+function raceProcessAndSignal(process: Deno.ChildProcess): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+
+    const handler = () => {
+      if (settled) return;
+      settled = true;
+      Deno.removeSignalListener("SIGUSR1", handler);
+      resolve(true);
+    };
+    Deno.addSignalListener("SIGUSR1", handler);
+
+    process.status.then(() => {
+      if (settled) return;
+      settled = true;
+      Deno.removeSignalListener("SIGUSR1", handler);
+      resolve(false);
+    });
+  });
+}
+
+// Block until SIGUSR1 is received.
+function waitForSignal(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const handler = () => {
+      Deno.removeSignalListener("SIGUSR1", handler);
+      resolve();
+    };
+    Deno.addSignalListener("SIGUSR1", handler);
+  });
 }
 
 export function launchArguments(options: RunOptions): string[] {

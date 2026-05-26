@@ -21,7 +21,7 @@ interface BuildStatus {
 }
 
 export class BuildLogger {
-  private spinnerTimer: number | undefined;
+  private spinnerTimer: ReturnType<typeof setInterval> | undefined;
   private frameIndex = 0;
   private currentStatus = "Preparing build";
   private currentPhaseKey = "Preparing build";

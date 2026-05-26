@@ -128,7 +128,7 @@ async function waitForProcess(
   check = true,
 ): Promise<number> {
   let interrupted = false;
-  let forceKillTimer: number | undefined;
+  let forceKillTimer: ReturnType<typeof setTimeout> | undefined;
   const handleInterrupt = () => {
     interrupted = true;
     Deno.stderr.writeSync(encoder.encode("\n"));

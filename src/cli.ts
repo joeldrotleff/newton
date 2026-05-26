@@ -11,6 +11,8 @@ import { initCommand } from "./commands/init.ts";
 import { lspCommand } from "./commands/lsp.ts";
 import { openCommand } from "./commands/open.ts";
 import { previewCommand } from "./commands/preview.ts";
+import { psCommand } from "./commands/ps.ts";
+import { reloadCommand } from "./commands/reload.ts";
 import { runCommand } from "./commands/run.ts";
 import { screenshotCommand } from "./commands/screenshot.ts";
 import { simsCommand } from "./commands/sims.ts";
@@ -222,6 +224,26 @@ export function buildCli() {
         .example("Capture preview", "newton preview metricCards")
         .example("Open in viewer", "newton preview metricCards --display open")
         .action((options, name) => previewCommand(name, options)),
+    )
+    //
+    // reload
+    //
+    .command(
+      "reload",
+      new Command()
+        .description("Signal a running `newton run` to rebuild and relaunch the app.")
+        .example("Reload", "newton reload")
+        .action(() => reloadCommand()),
+    )
+    //
+    // ps
+    //
+    .command(
+      "ps",
+      new Command()
+        .description("Show active Newton run sessions in the current project.")
+        .example("List sessions", "newton ps")
+        .action(() => psCommand()),
     )
     //
     // lsp

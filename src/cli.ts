@@ -219,7 +219,9 @@ export function buildCli() {
       new Command()
         .type("idiom", idiomType)
         .type("display", displayType)
-        .description("Run a named app-side preview and capture it as a screenshot.")
+        .description(
+          "Capture an app-registered SwiftUI preview by name as a simulator screenshot. Requires a matching DEBUG NewtonPreview entry in the app.",
+        )
         .arguments("<name:string>")
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
         .option(
@@ -230,13 +232,19 @@ export function buildCli() {
         .option("--display <mode:display>", "How to display the screenshot", {
           default: "inline" as const,
         })
-        .option("--inline-width <columns:number>", "Terminal columns for inline image display")
-        .option("--open-simulator", "Reveal Simulator.app while capturing the preview")
-        .option("--delay <seconds:number>", "Seconds to wait before capturing", { default: 2 })
+        .option(
+          "--inline-width <columns:number>",
+          "Terminal columns for inline image display (default: 18)",
+        )
+        .option("--open-simulator", "Reveal Simulator.app; previews run headlessly by default")
+        .option("--delay <seconds:number>", "Seconds to wait after launch before capturing", {
+          default: 2,
+        })
         .option("--app-arg <arg:string>", "Extra launch argument (repeatable)", { collect: true })
         .option("--verbose", "Print verbose xcodebuild output")
-        .example("Capture preview", "newton preview metricCards")
-        .example("Open in viewer", "newton preview metricCards --display open")
+        .example("Capture named preview", 'newton preview "Basic Chat Screen"')
+        .example("Resize inline image", 'newton preview "Basic Chat Screen" --inline-width 60')
+        .example("Open in viewer", 'newton preview "Basic Chat Screen" --display open')
         .action((options, name) => previewCommand(name, options)),
     )
     //

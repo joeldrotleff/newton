@@ -78,7 +78,7 @@ export async function runApp(options: RunOptions): Promise<void> {
 
     // If logs are enabled, enter a reload loop that listens for SIGUSR1.
     if (options.logs ?? true) {
-      await reloadLoop(options, container, simulator, appArgs);
+      await reloadLoop(options, container, simulator, appArgs, cwd);
     }
   } finally {
     await removeSession(cwd);
@@ -134,6 +134,7 @@ async function reloadLoop(
   container: Awaited<ReturnType<typeof discoverProject>>,
   simulator: Awaited<ReturnType<typeof resolveSimulator>>,
   appArgs: string[],
+  cwd: string,
 ): Promise<void> {
   const appPath = await locateBuiltApp({
     ...options,
@@ -160,12 +161,26 @@ async function reloadLoop(
       stderr: "inherit",
     }).spawn();
 
-    // Wait for either the process to exit or a SIGUSR1 reload signal.
-    const reloadRequested = await raceProcessAndSignal(logProcess);
+    // Wait for either the process to exit, a SIGUSR1 reload, or SIGINT quit.
+    const signal = await raceProcessAndSignal(logProcess);
 
-    if (!reloadRequested) {
+    if (signal === "exited") {
       // App exited on its own (crash, user quit, etc.) — we're done.
       break;
+    }
+
+    if (signal === "interrupted") {
+      // Ctrl-C — kill the child, clean up, and re-raise SIGINT for the shell.
+      try {
+        logProcess.kill("SIGTERM");
+      } catch { /* already exited */ }
+      try {
+        await logProcess.status;
+      } catch { /* ignore */ }
+      await removeSession(cwd);
+      // Re-raise SIGINT so the shell sees a proper signal exit and redraws the prompt.
+      Deno.kill(Deno.pid, "SIGINT");
+      return;
     }
 
     // Reload requested — kill the log stream, rebuild, and restart.
@@ -192,24 +207,38 @@ async function reloadLoop(
   }
 }
 
-// Race between process exit and SIGUSR1. Returns true if reload was requested.
-function raceProcessAndSignal(process: Deno.ChildProcess): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
+type LoopSignal = "reload" | "exited" | "interrupted";
+
+// Race between process exit, SIGUSR1 (reload), and SIGINT (quit).
+function raceProcessAndSignal(process: Deno.ChildProcess): Promise<LoopSignal> {
+  return new Promise<LoopSignal>((resolve) => {
     let settled = false;
 
-    const handler = () => {
+    const reloadHandler = () => {
       if (settled) return;
       settled = true;
-      Deno.removeSignalListener("SIGUSR1", handler);
-      resolve(true);
+      Deno.removeSignalListener("SIGUSR1", reloadHandler);
+      Deno.removeSignalListener("SIGINT", interruptHandler);
+      resolve("reload");
     };
-    Deno.addSignalListener("SIGUSR1", handler);
+
+    const interruptHandler = () => {
+      if (settled) return;
+      settled = true;
+      Deno.removeSignalListener("SIGUSR1", reloadHandler);
+      Deno.removeSignalListener("SIGINT", interruptHandler);
+      resolve("interrupted");
+    };
+
+    Deno.addSignalListener("SIGUSR1", reloadHandler);
+    Deno.addSignalListener("SIGINT", interruptHandler);
 
     process.status.then(() => {
       if (settled) return;
       settled = true;
-      Deno.removeSignalListener("SIGUSR1", handler);
-      resolve(false);
+      Deno.removeSignalListener("SIGUSR1", reloadHandler);
+      Deno.removeSignalListener("SIGINT", interruptHandler);
+      resolve("exited");
     });
   });
 }

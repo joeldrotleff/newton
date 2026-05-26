@@ -229,6 +229,7 @@ export function buildCli() {
         .option("--display <mode:display>", "How to display the screenshot", {
           default: "inline" as const,
         })
+        .option("--open-simulator", "Reveal Simulator.app while capturing the preview")
         .option("--delay <seconds:number>", "Seconds to wait before capturing", { default: 2 })
         .option("--app-arg <arg:string>", "Extra launch argument (repeatable)", { collect: true })
         .option("--verbose", "Print verbose xcodebuild output")

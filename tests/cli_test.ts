@@ -31,7 +31,7 @@ Deno.test("preview subcommand declares simulator screenshot options", () => {
   if (!preview) throw new Error("preview command not found");
 
   const optionNames = preview.getOptions().map((o) => o.name);
-  for (const flag of ["display", "delay", "app-arg"]) {
+  for (const flag of ["display", "open-simulator", "delay", "app-arg"]) {
     assertEquals(
       optionNames.includes(flag),
       true,

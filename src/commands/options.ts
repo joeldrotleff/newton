@@ -39,6 +39,7 @@ export interface PreviewCliOptions extends RunCliOptions {
   output?: string;
   display?: ScreenshotDisplay;
   delay?: number;
+  openSimulator?: boolean;
 }
 
 export interface SimsCliOptions {

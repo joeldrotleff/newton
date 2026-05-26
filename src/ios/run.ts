@@ -21,6 +21,7 @@ export interface RunOptions {
   appStore?: "iphone" | "ipad";
   device?: string;
   logs?: boolean;
+  revealSimulator?: boolean;
   logLevel?: string;
   logFilter?: string;
   appArgs?: string[];
@@ -63,7 +64,9 @@ export async function runApp(options: RunOptions): Promise<void> {
     appStore: options.appStore,
   });
   await bootSimulator(simulator.udid);
-  await openSimulator(simulator.udid);
+  if (options.revealSimulator ?? true) {
+    await openSimulator(simulator.udid);
+  }
 
   // Write session file so `newton reload` can find this process.
   const cwd = Deno.cwd();

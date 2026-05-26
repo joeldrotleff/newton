@@ -25,6 +25,7 @@ export async function previewCommand(name: string, opts: PreviewCliOptions): Pro
     udid: simulator.udid,
     appArgs: [...(runOpts.appArgs ?? []), "-NewtonPreview", name],
     logs: false,
+    revealSimulator: opts.openSimulator ?? false,
   });
   await new Promise((resolve) => setTimeout(resolve, delay * 1000));
 

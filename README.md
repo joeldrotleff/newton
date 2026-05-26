@@ -233,10 +233,13 @@ the `preferredSimulator` from `newton.json`, or its normal default simulator sel
 newton preview metricCards
 newton preview metricCards --display inline
 newton preview metricCards --delay 3
+newton preview metricCards --open-simulator
 ```
 
 Runs the app with `-NewtonPreview <name>`, waits briefly, captures a screenshot, and displays it.
-This requires app-side opt-in code that maps preview names to SwiftUI views.
+Preview runs headlessly by default: Newton boots and controls CoreSimulator without opening
+Simulator.app. Pass `--open-simulator` when you want to watch the capture. This requires app-side
+opt-in code that maps preview names to SwiftUI views.
 
 ### SourceKit-LSP
 

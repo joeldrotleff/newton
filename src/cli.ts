@@ -1,10 +1,10 @@
 import { Command, EnumType } from "@cliffy/command";
-import { CompletionsCommand } from "@cliffy/command/completions";
 import { HelpCommand } from "@cliffy/command/help";
 
 import { buildLogCommand } from "./commands/build-log.ts";
 import { buildCommand } from "./commands/build.ts";
 import { cleanSimsCommand } from "./commands/clean-sims.ts";
+import { completionsCommand } from "./commands/completions.ts";
 import { createCommand } from "./commands/create.ts";
 import { devicesCommand } from "./commands/devices.ts";
 import { initCommand } from "./commands/init.ts";
@@ -281,7 +281,7 @@ export function buildCli() {
     // help / completions (built-in)
     //
     .command("help", new HelpCommand().global())
-    .command("completions", new CompletionsCommand());
+    .command("completions", completionsCommand());
 }
 
 export async function runCli(args: string[]): Promise<void> {

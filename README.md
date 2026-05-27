@@ -37,6 +37,16 @@ Make sure `~/.local/bin` is on your `PATH`. For Fish:
 fish_add_path ~/.local/bin
 ```
 
+Install or refresh shell completions:
+
+```sh
+newton completions
+```
+
+This writes Fish, Zsh, and Bash completion files to standard user-level locations. Use
+`newton completions --shell fish` for a single shell, or `newton completions fish` to print a
+completion script to stdout.
+
 To only compile without installing:
 
 ```sh

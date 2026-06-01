@@ -17,11 +17,16 @@ export async function previewCommand(name: string, opts: PreviewCliOptions): Pro
     sim: runOpts.sim,
     idiom: runOpts.idiom,
     appStore: runOpts.appStore,
+    preferred: runOpts.preferred,
   });
 
   await runApp({
     ...runOpts,
-    sim: simulator.name,
+    // We already resolved the simulator above; pin runApp to it by udid and drop the
+    // idiom/app-store filters so they don't re-trigger (or conflict with) selection.
+    idiom: undefined,
+    appStore: undefined,
+    sim: undefined,
     udid: simulator.udid,
     appArgs: [...(runOpts.appArgs ?? []), "-NewtonPreview", name],
     logs: false,

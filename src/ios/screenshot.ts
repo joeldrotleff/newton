@@ -13,13 +13,22 @@ export interface ScreenshotOptions {
   inlineWidth?: number;
   sim?: string;
   udid?: string;
+  idiom?: "iphone" | "ipad";
+  appStore?: "iphone" | "ipad";
+  preferred?: string;
 }
 
 export async function captureScreenshot(options: ScreenshotOptions = {}): Promise<string> {
   const output = resolve(options.output ?? join(".newton", "screenshots", `${timestamp()}.png`));
   await ensureDir(dirname(output));
 
-  const simulator = await resolveSimulator({ sim: options.sim, udid: options.udid });
+  const simulator = await resolveSimulator({
+    sim: options.sim,
+    udid: options.udid,
+    idiom: options.idiom,
+    appStore: options.appStore,
+    preferred: options.preferred,
+  });
   await bootSimulator(simulator.udid);
   await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.

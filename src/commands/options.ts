@@ -34,6 +34,8 @@ export interface ScreenshotCliOptions {
   inlineWidth?: number;
   sim?: string;
   udid?: string;
+  idiom?: "iphone" | "ipad";
+  appStore?: "iphone" | "ipad";
 }
 
 export interface PreviewCliOptions extends RunCliOptions {
@@ -66,7 +68,8 @@ export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions
     target,
     configuration: config.configuration,
     appName: config.appName,
-    sim: config.preferredSimulator,
+    // Soft default; resolveSimulator ignores it when an idiom/app-store flag is present.
+    preferred: config.preferredSimulator,
     idiom: opts.idiom,
     appStore: opts.appStore,
     device: deviceName,
@@ -87,7 +90,10 @@ export async function resolveScreenshotOptions(opts: ScreenshotCliOptions) {
     output: opts.output,
     display: opts.display ?? "none" as const,
     inlineWidth: opts.inlineWidth,
-    sim: opts.sim ?? config.preferredSimulator,
+    sim: opts.sim,
     udid: opts.udid,
+    idiom: opts.idiom,
+    appStore: opts.appStore,
+    preferred: config.preferredSimulator,
   };
 }

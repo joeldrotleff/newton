@@ -1,14 +1,17 @@
 import { Table } from "@cliffy/table";
 import { isAppStoreCompatible, listSimulators, resolveSimulator } from "../ios/simulator.ts";
+import { loadConfig } from "../ios/config.ts";
 import { SimsCliOptions } from "./options.ts";
 
 // Lists installed iOS simulators and marks Newton's default choice.
 export async function simsCommand(opts: SimsCliOptions): Promise<void> {
-  const idiom = opts.appStore ?? opts.idiom ?? "iphone";
+  const config = await loadConfig();
   const devices = await listSimulators();
+  // Mirror resolveSimulator's selection so the '*' marker matches what `run` would launch.
   const selected = await resolveSimulator({
-    idiom,
+    idiom: opts.idiom,
     appStore: opts.appStore,
+    preferred: config.preferredSimulator,
   }).catch(() => undefined);
 
   new Table()

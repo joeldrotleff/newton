@@ -18,6 +18,8 @@ export interface SimulatorSelectionOptions {
   udid?: string;
   idiom?: Idiom;
   appStore?: Idiom;
+  // Soft default from newton.json. Applied only when the user passes no selection flags.
+  preferred?: string;
 }
 
 const IPHONE_SCREENSHOT_NAMES = [
@@ -87,7 +89,17 @@ export function isAppStoreCompatible(device: SimulatorDevice, idiom?: Idiom): bo
 export async function resolveSimulator(
   options: SimulatorSelectionOptions = {},
 ): Promise<SimulatorDevice> {
-  const devices = await listSimulators();
+  return selectSimulator(await listSimulators(), options);
+}
+
+// Pure selection logic: given the available devices and a selection request, pick one device.
+// Kept separate from listSimulators so it can be unit-tested without shelling out to xcrun.
+export function selectSimulator(
+  devices: SimulatorDevice[],
+  options: SimulatorSelectionOptions = {},
+): SimulatorDevice {
+  assertCompatibleSelection(options);
+
   if (options.udid) {
     const exact = devices.find((device) => device.udid === options.udid);
     if (!exact) fail(`No available iOS simulator found with UDID ${options.udid}.`);
@@ -99,6 +111,16 @@ export async function resolveSimulator(
     return exact;
   }
 
+  // The preferred simulator (newton.json) is a default, not a pin: it applies only when the
+  // user gives no selection flags. Any explicit --idiom/--app-store signals intent to choose,
+  // so we ignore the saved preference and fall through to the ranking algorithm.
+  const userSelecting = options.idiom !== undefined || options.appStore !== undefined;
+  if (!userSelecting && options.preferred) {
+    const exact = devices.find((device) => device.name === options.preferred);
+    if (exact) return exact;
+    // Preferred simulator no longer exists (e.g. deleted) — fall through to ranking.
+  }
+
   const idiom = options.appStore ?? options.idiom ?? "iphone";
   let candidates = devices.filter((device) => matchesIdiom(device, idiom));
   if (options.appStore) {
@@ -107,6 +129,23 @@ export async function resolveSimulator(
   if (candidates.length === 0) fail(`No available ${idiom} simulator found.`);
 
   return candidates.toSorted(compareSimulatorPreference(idiom))[0];
+}
+
+// Rejects contradictory selection flags before we bother touching the device list.
+// --sim/--udid pin an exact device; --idiom/--app-store are filters — mixing the two,
+// or passing two pins / two conflicting idioms, is ambiguous and should fail loudly.
+export function assertCompatibleSelection(options: SimulatorSelectionOptions): void {
+  if (options.udid && options.sim) {
+    fail("Pass only one of --sim or --udid, not both.");
+  }
+  const pin = options.udid ? "--udid" : options.sim ? "--sim" : undefined;
+  const filter = options.idiom ? "--idiom" : options.appStore ? "--app-store" : undefined;
+  if (pin && filter) {
+    fail(`${pin} selects an exact simulator and can't be combined with ${filter}.`);
+  }
+  if (options.idiom && options.appStore && options.idiom !== options.appStore) {
+    fail(`--idiom ${options.idiom} conflicts with --app-store ${options.appStore}.`);
+  }
 }
 
 export function matchesIdiom(device: SimulatorDevice, idiom: Idiom): boolean {

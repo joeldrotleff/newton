@@ -19,6 +19,7 @@ export async function buildCommand(opts: RunCliOptions): Promise<void> {
       sim: options.sim,
       idiom: options.idiom,
       appStore: options.appStore,
+      preferred: options.preferred,
     });
 
   await build({

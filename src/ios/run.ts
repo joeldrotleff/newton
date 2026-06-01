@@ -19,6 +19,7 @@ export interface RunOptions {
   udid?: string;
   idiom?: "iphone" | "ipad";
   appStore?: "iphone" | "ipad";
+  preferred?: string;
   device?: string;
   logs?: boolean;
   revealSimulator?: boolean;
@@ -37,6 +38,8 @@ export async function runApp(options: RunOptions): Promise<void> {
 
   if (target === "device") {
     const device = await resolveDevice(options.device);
+    // Announce the target before the (slow) build so the user can confirm it's the right device.
+    console.log(`▸ Device: ${device.name}`);
     await build({
       ...options,
       container,
@@ -62,7 +65,10 @@ export async function runApp(options: RunOptions): Promise<void> {
     udid: options.udid,
     idiom: options.idiom,
     appStore: options.appStore,
+    preferred: options.preferred,
   });
+  // Announce the target before the (slow) build so the user can confirm it's the right device.
+  console.log(`▸ Simulator: ${simulator.name} (iOS ${simulator.runtimeVersion})`);
   await bootSimulator(simulator.udid);
   if (options.revealSimulator ?? true) {
     await openSimulator(simulator.udid);

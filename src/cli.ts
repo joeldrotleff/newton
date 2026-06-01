@@ -198,10 +198,16 @@ export function buildCli() {
     .command(
       "screenshot",
       new Command()
+        .type("idiom", idiomType)
         .type("display", displayType)
         .description("Capture a screenshot from the selected simulator.")
         .option("--sim <name:string>", "Simulator name")
         .option("--udid <id:string>", "Simulator UDID")
+        .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
+        .option(
+          "--app-store <idiom:idiom>",
+          "Pick a simulator whose resolution matches App Store Connect screenshot requirements",
+        )
         .option("--output <path:file>", "Output file path")
         .option("--display <mode:display>", "How to display the screenshot", {
           default: "none" as const,

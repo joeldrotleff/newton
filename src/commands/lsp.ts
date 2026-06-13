@@ -1,7 +1,7 @@
 import { loadConfig, missingRequiredConfigFieldMessage } from "../ios/config.ts";
 import { containerArgs, defaultDerivedDataPath, discoverProject } from "../ios/project.ts";
 import { fail } from "../util/errors.ts";
-import { join } from "../util/paths.ts";
+import { join, resolve } from "../util/paths.ts";
 import { executableExists, runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
 
 // Generates SourceKit-LSP support files via xcode-build-server using the project's newton.json.
@@ -26,6 +26,13 @@ export async function lspCommand(): Promise<void> {
     "--build_root",
     derivedData,
   ]);
+  // Passing --build_root makes xcode-build-server skip its normal project/workspace
+  // inference, so add the internal .xcodeproj workspace binding back explicitly.
+  await updateBuildServerConfig(
+    "buildServer.json",
+    derivedData,
+    xcodeBuildServerWorkspacePath(container),
+  );
 
   // xcode-build-server (kind: xcode) reads compile flags from xcactivitylog files
   // under <build_root>/Logs/Build. xcodebuild only emits those when -resultBundlePath
@@ -52,4 +59,24 @@ export async function lspCommand(): Promise<void> {
   ]);
 
   console.log("Generated buildServer.json for SourceKit-LSP.");
+}
+
+export function xcodeBuildServerWorkspacePath(
+  container: { kind: "project" | "workspace"; path: string },
+): string {
+  return container.kind === "workspace"
+    ? resolve(container.path)
+    : resolve(join(container.path, "project.xcworkspace"));
+}
+
+export async function updateBuildServerConfig(
+  path: string,
+  buildRoot: string,
+  workspace: string,
+): Promise<void> {
+  const contents = await Deno.readTextFile(path);
+  const config = JSON.parse(contents) as Record<string, unknown>;
+  config.build_root = resolve(buildRoot);
+  config.workspace = workspace;
+  await Deno.writeTextFile(path, `${JSON.stringify(config, null, "\t")}\n`);
 }

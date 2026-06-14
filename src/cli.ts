@@ -17,6 +17,7 @@ import { runCommand } from "./commands/run.ts";
 import { screenshotCommand } from "./commands/screenshot.ts";
 import { simsCommand } from "./commands/sims.ts";
 import { teamsCommand } from "./commands/teams.ts";
+import { testCommand } from "./commands/test.ts";
 
 const VERSION = "0.1.0";
 
@@ -151,6 +152,31 @@ export function buildCli() {
         .example("Build for device", "newton build --device")
         .example("Active compile flag", "newton build -D LOCALHOST_BACKEND")
         .action((options) => buildCommand(options)),
+    )
+    //
+    // test
+    //
+    .command(
+      "test",
+      new Command()
+        .type("idiom", idiomType)
+        .description("Run the configured scheme's tests on a simulator or connected device.")
+        .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
+        .option(
+          "--app-store <idiom:idiom>",
+          "Pick a simulator whose resolution matches App Store Connect screenshot requirements",
+        )
+        .option("--device [name:string]", "Test on a connected device (optional name)")
+        .option(
+          "-D, --define <name:string>",
+          "Swift compile-time conditional (repeatable). Equivalent to swiftc -D <name>.",
+          { collect: true },
+        )
+        .option("--verbose", "Print verbose xcodebuild output")
+        .example("Test on default sim", "newton test")
+        .example("Test on iPad sim", "newton test --idiom ipad")
+        .example("Active compile flag", "newton test -D LOCALHOST_BACKEND")
+        .action((options) => testCommand(options)),
     )
     //
     // build-log

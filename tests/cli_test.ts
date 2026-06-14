@@ -23,6 +23,7 @@ Deno.test("buildCli registers all top-level subcommands", () => {
     "screenshot",
     "sims",
     "teams",
+    "test",
   ]);
 });
 
@@ -39,6 +40,20 @@ Deno.test("preview subcommand declares simulator screenshot options", () => {
     );
   }
   assertEquals(optionNames.includes("device"), false);
+});
+
+Deno.test("test subcommand declares build-like options", () => {
+  const test = buildCli().getCommand("test");
+  if (!test) throw new Error("test command not found");
+
+  const optionNames = test.getOptions().map((o) => o.name);
+  for (const flag of ["idiom", "app-store", "device", "define", "verbose"]) {
+    assertEquals(
+      optionNames.includes(flag),
+      true,
+      `expected --${flag} on 'test', got: ${optionNames.join(", ")}`,
+    );
+  }
 });
 
 Deno.test("run subcommand declares detach option", () => {

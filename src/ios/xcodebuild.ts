@@ -29,9 +29,19 @@ export function buildDestination(options: Pick<BuildOptions, "destination" | "ta
 }
 
 export async function build(options: BuildOptions): Promise<void> {
-  const args = buildArgs(options);
+  await runXcodebuild(buildArgs(options), options.verbose, "Build");
+}
 
-  if (options.verbose) {
+export async function test(options: BuildOptions): Promise<void> {
+  await runXcodebuild(testArgs(options), options.verbose, "Test");
+}
+
+async function runXcodebuild(
+  args: string[],
+  verbose = false,
+  label: "Build" | "Test",
+): Promise<void> {
+  if (verbose) {
     // Verbose mode: pipe output directly to console
     await runCliCommandInTerminal("xcodebuild", args);
     return;
@@ -61,14 +71,14 @@ export async function build(options: BuildOptions): Promise<void> {
       const logContents = await readBuildLog(logPath);
       const diagnostic = formatBuildFailureDiagnostic(logContents, summary);
 
-      console.error(`\n❌ Build failed in ${elapsed}`);
+      console.error(`\n❌ ${label} failed in ${elapsed}`);
       console.error(diagnostic);
       console.error(formatBuildSummary(summary));
       console.error(`\nFull build log: ${logPath}\n`);
       Deno.exit(result.code);
     }
 
-    console.log(`✓ Build succeeded in ${elapsed}${formatBuildSummary(summary)}\n`);
+    console.log(`✓ ${label} succeeded in ${elapsed}${formatBuildSummary(summary)}\n`);
   } finally {
     await logger.close();
   }
@@ -76,6 +86,14 @@ export async function build(options: BuildOptions): Promise<void> {
 
 export function buildArgs(options: BuildOptions): string[] {
   const actions = options.action === "clean build" ? ["clean", "build"] : ["build"];
+  return xcodebuildArgs(options, actions);
+}
+
+export function testArgs(options: BuildOptions): string[] {
+  return xcodebuildArgs(options, ["test"]);
+}
+
+function xcodebuildArgs(options: BuildOptions, actions: string[]): string[] {
   return [
     ...containerArgs(options.container),
     "-scheme", // Build the named scheme.

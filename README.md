@@ -1,6 +1,6 @@
 # Newton
 
-Newton is a standalone CLI for iOS app build, run, screenshot, preview, and SourceKit-LSP workflows.
+Newton is a standalone CLI for iOS app build, test, run, screenshot, preview, and SourceKit-LSP workflows.
 
 It is built for fast terminal-driven iOS development: pick a good simulator, build with
 `xcodebuild`, install and launch the app, stream logs when useful, and capture screenshots without
@@ -10,7 +10,7 @@ Newton is intentionally iOS-only.
 
 ## Status
 
-Early MVP. The core simulator build/run/screenshot workflow works, plus project initialization,
+Early MVP. The core simulator build/test/run/screenshot workflow works, plus project initialization,
 real-device listing, and initial LSP/preview commands.
 
 ## Requirements
@@ -74,6 +74,7 @@ From an iOS project root:
 ```sh
 newton create "My App"
 newton build
+newton test
 newton run --detach
 newton screenshot --display open
 ```
@@ -185,6 +186,21 @@ newton build --verbose
 Builds the configured scheme with `xcodebuild`. Scheme, project/workspace, and configuration come
 from `newton.json`. Use `--idiom` or `--app-store` to pick a simulator other than the default, or
 `--device` to target a connected device.
+
+### Test
+
+```sh
+newton test
+newton test --idiom ipad
+newton test --app-store iphone
+newton test --device
+newton test --device "Joel's iPhone"
+newton test --verbose
+```
+
+Runs the configured scheme's tests with `xcodebuild test`. Scheme, project/workspace, and
+configuration come from `newton.json`. Use `--idiom` or `--app-store` to pick a simulator other than
+the default, or `--device` to target a connected device.
 
 ### Build log
 

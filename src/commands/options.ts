@@ -28,6 +28,14 @@ export interface RunCliOptions {
   verbose?: boolean;
 }
 
+export interface TestCliOptions {
+  idiom?: "iphone" | "ipad";
+  appStore?: "iphone" | "ipad";
+  device?: string | boolean;
+  define?: string[];
+  verbose?: boolean;
+}
+
 export interface ScreenshotCliOptions {
   output?: string;
   display?: ScreenshotDisplay;

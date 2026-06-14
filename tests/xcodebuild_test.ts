@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { SimulatorDevice } from "../src/ios/simulator.ts";
 import { IOSDevice } from "../src/ios/device.ts";
-import { buildArgs } from "../src/ios/xcodebuild.ts";
+import { buildArgs, testArgs } from "../src/ios/xcodebuild.ts";
 
 Deno.test("buildArgs constructs simulator xcodebuild command", () => {
   const args = buildArgs({
@@ -83,6 +83,21 @@ Deno.test("buildArgs omits OTHER_SWIFT_FLAGS when swiftFlags is empty or absent"
 
   assertEquals(empty.some((a) => a.startsWith("OTHER_SWIFT_FLAGS=")), false);
   assertEquals(absent.some((a) => a.startsWith("OTHER_SWIFT_FLAGS=")), false);
+});
+
+Deno.test("testArgs constructs simulator xcodebuild test command", () => {
+  const args = testArgs({
+    container: { kind: "project", path: "/tmp/Axion.xcodeproj" },
+    scheme: "Axion",
+    destination: simulatorDevice,
+    target: "sim",
+  });
+
+  assertEquals(args.includes("-project"), true);
+  assertEquals(args.includes("/tmp/Axion.xcodeproj"), true);
+  assertEquals(args.includes("platform=iOS Simulator,id=SIM-UDID"), true);
+  assertEquals(args.includes("CODE_SIGN_IDENTITY=-"), true);
+  assertEquals(args.at(-1), "test");
 });
 
 Deno.test("buildArgs prepends 'clean' when action is 'clean build'", () => {

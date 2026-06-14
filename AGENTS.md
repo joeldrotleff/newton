@@ -1,6 +1,6 @@
 # Newton — Agent Guide
 
-Standalone Deno CLI for iOS app build, run, screenshot, preview, and SourceKit-LSP workflows. iOS-only, macOS-only.
+Standalone Deno CLI for iOS app build, test, run, screenshot, preview, and SourceKit-LSP workflows. iOS-only, macOS-only.
 
 ## Commands
 
@@ -27,7 +27,7 @@ deno run --allow-run --allow-read --allow-write --allow-env src/main.ts <subcomm
 - [src/ios/](src/ios/) — domain logic (project discovery, xcodebuild, simulator/device, screenshot, signing, scaffold)
   - [config.ts](src/ios/config.ts) — `newton.json` schema and read/write
   - [project.ts](src/ios/project.ts) — `discoverProject()` (config → fs scan)
-  - [xcodebuild.ts](src/ios/xcodebuild.ts) — `buildArgs`, `build`, `showBuildSettings`
+  - [xcodebuild.ts](src/ios/xcodebuild.ts) — `buildArgs`, `testArgs`, `build`, `test`, `showBuildSettings`
   - [simulator.ts](src/ios/simulator.ts) — `resolveSimulator`, idiom/App Store filters, ranking
   - [run.ts](src/ios/run.ts) — `runApp` (build → install → launch → optional log stream + reload loop)
   - [session.ts](src/ios/session.ts) — `.newton/run.json` session file for inter-process reload signaling

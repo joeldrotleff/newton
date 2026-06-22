@@ -1,7 +1,12 @@
 import { fail } from "../util/errors.ts";
 import { dirname, exists, relative, resolve } from "../util/paths.ts";
 import { runCliCommand } from "../util/process.ts";
-import { discoverProject, XcodeContainer } from "./project.ts";
+import {
+  containerArgs,
+  defaultDerivedDataPath,
+  discoverProject,
+  XcodeContainer,
+} from "./project.ts";
 import { resolveSimulator } from "./simulator.ts";
 import { showBuildSettings } from "./xcodebuild.ts";
 
@@ -103,6 +108,33 @@ export async function listSchemes(container: XcodeContainer): Promise<string[]> 
   const { stdout } = await runCliCommand("xcodebuild", args);
   const json = JSON.parse(stdout);
   return json.project?.schemes ?? json.workspace?.schemes ?? [];
+}
+
+// Reads the configuration and app name a scheme builds, straight from its build
+// settings. A scheme pins its own configuration, so when `--scheme` overrides
+// newton.json we can trust the scheme instead of forcing newton.json's values.
+// Uses a generic destination since these settings don't depend on the device.
+export async function resolveSchemeSettings(
+  scheme: string,
+): Promise<{ configuration?: string; appName?: string }> {
+  const container = await discoverProject();
+  const { stdout } = await runCliCommand("xcodebuild", [
+    ...containerArgs(container),
+    "-scheme", // Inspect settings for the named scheme.
+    scheme,
+    "-destination", // Generic destination — configuration/product don't vary by device.
+    "generic/platform=iOS Simulator",
+    "-derivedDataPath", // Keep this query out of the default DerivedData location.
+    defaultDerivedDataPath(),
+    "-showBuildSettings",
+    "-json",
+  ]);
+  const settings = JSON.parse(stdout) as { buildSettings?: Record<string, string> }[];
+  const app = settings.find((s) => s.buildSettings?.WRAPPER_NAME?.endsWith(".app"))?.buildSettings;
+  return {
+    configuration: app?.CONFIGURATION,
+    appName: app?.WRAPPER_NAME?.replace(/\.app$/, ""),
+  };
 }
 
 async function resolveAppSettings(options: {

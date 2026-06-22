@@ -1,4 +1,4 @@
-import { loadConfig } from "../ios/config.ts";
+import { loadConfig, resolveSchemeSettings } from "../ios/config.ts";
 import { RunOptions } from "../ios/run.ts";
 import { ScreenshotDisplay } from "../ios/screenshot.ts";
 
@@ -17,6 +17,8 @@ export interface CreateCommandOptions {
 }
 
 export interface RunCliOptions {
+  scheme?: string;
+  configuration?: string;
   idiom?: "iphone" | "ipad";
   appStore?: "iphone" | "ipad";
   device?: string | boolean;
@@ -69,13 +71,27 @@ export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions
   // --device (with or without a value) selects a connected device; otherwise use the simulator.
   const deviceName = typeof opts.device === "string" ? opts.device : undefined;
   const target = opts.device ? "device" : "sim";
+
+  // CLI flags override newton.json so a single project can run multiple schemes
+  // (e.g. a QuestDev build) without editing the file. A scheme pins its own
+  // configuration and product, so when --scheme is given we read those from the
+  // scheme itself — no need to repeat --configuration to match it.
+  const scheme = opts.scheme ?? config.scheme;
+  let configuration = opts.configuration ?? config.configuration;
+  let appName = config.appName;
+  if (opts.scheme) {
+    const derived = await resolveSchemeSettings(opts.scheme);
+    configuration = opts.configuration ?? derived.configuration ?? config.configuration;
+    appName = derived.appName ?? config.appName;
+  }
+
   return {
-    scheme: config.scheme,
+    scheme,
     project: config.project,
     workspace: config.workspace,
     target,
-    configuration: config.configuration,
-    appName: config.appName,
+    configuration,
+    appName,
     // Soft default; resolveSimulator ignores it when an idiom/app-store flag is present.
     preferred: config.preferredSimulator,
     idiom: opts.idiom,

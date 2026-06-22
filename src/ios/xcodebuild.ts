@@ -106,6 +106,10 @@ function xcodebuildArgs(options: BuildOptions, actions: string[]): string[] {
     ...configurationArgs(options.configuration),
     "ONLY_ACTIVE_ARCH=YES", // Build only the selected destination architecture for faster local runs.
     ...(options.target === "sim" ? ["CODE_SIGN_IDENTITY=-"] : []), // Simulators do not need code signing.
+    // Let xcodebuild register App IDs, enable capabilities, and create/update
+    // provisioning profiles for device builds — the Xcode GUI does this silently,
+    // but the CLI won't touch the portal without this flag (e.g. a new bundle id).
+    ...(options.target === "device" ? ["-allowProvisioningUpdates"] : []),
     ...swiftFlagsArgs(options.swiftFlags),
     ...actions,
   ];

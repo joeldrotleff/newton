@@ -136,6 +136,11 @@ export function buildCli() {
       new Command()
         .type("idiom", idiomType)
         .description("Build the configured scheme for a simulator or connected device.")
+        .option("--scheme <name:string>", "Override the scheme from newton.json")
+        .option(
+          "--configuration <name:string>",
+          "Override the build configuration (defaults to the scheme's own)",
+        )
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
         .option(
           "--app-store <idiom:idiom>",
@@ -196,6 +201,11 @@ export function buildCli() {
       new Command()
         .type("idiom", idiomType)
         .description("Build, install, launch, and stream logs for the app.")
+        .option("--scheme <name:string>", "Override the scheme from newton.json")
+        .option(
+          "--configuration <name:string>",
+          "Override the build configuration (defaults to the scheme's own)",
+        )
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
         .option(
           "--app-store <idiom:idiom>",
@@ -216,6 +226,7 @@ export function buildCli() {
         .example("Run detached", "newton run --detach")
         .example("Run on device", "newton run --device")
         .example("Active compile flag", "newton run -D LOCALHOST_BACKEND")
+        .example("Run an alternate scheme", "newton run --device --scheme QuestDev")
         .action((options) => runCommand(options)),
     )
     //
@@ -252,7 +263,7 @@ export function buildCli() {
         .type("idiom", idiomType)
         .type("display", displayType)
         .description(
-          "Capture an app-registered SwiftUI preview by name as a simulator screenshot. Requires a matching DEBUG NewtonPreview entry in the app.",
+          'Capture an app-registered SwiftUI preview by name as a simulator screenshot. Requires DEBUG app-side code: read UserDefaults(key: "NewtonPreview") and route to a view that renders the named preview. See the README for a full setup guide.',
         )
         .arguments("<name:string>")
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
@@ -277,6 +288,10 @@ export function buildCli() {
         .example("Capture named preview", 'newton preview "Basic Chat Screen"')
         .example("Resize inline image", 'newton preview "Basic Chat Screen" --inline-width 60')
         .example("Open in viewer", 'newton preview "Basic Chat Screen" --display open')
+        .example(
+          "Save to disk without inline renderer",
+          'newton preview "Basic Chat Screen" --output preview.png --display none',
+        )
         .action((options, name) => previewCommand(name, options)),
     )
     //

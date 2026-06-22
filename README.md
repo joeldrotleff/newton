@@ -1,6 +1,7 @@
 # Newton
 
-Newton is a standalone CLI for iOS app build, test, run, screenshot, preview, and SourceKit-LSP workflows.
+Newton is a standalone CLI for iOS app build, test, run, screenshot, preview, and SourceKit-LSP
+workflows.
 
 It is built for fast terminal-driven iOS development: pick a good simulator, build with
 `xcodebuild`, install and launch the app, stream logs when useful, and capture screenshots without
@@ -94,8 +95,8 @@ Example `newton.json`:
 }
 ```
 
-Use `workspace` instead of `project` when the selected Xcode container is an `.xcworkspace`.
-All fields are optional; `newton init` writes them based on the current Xcode project.
+Use `workspace` instead of `project` when the selected Xcode container is an `.xcworkspace`. All
+fields are optional; `newton init` writes them based on the current Xcode project.
 
 ## Command reference
 
@@ -143,9 +144,10 @@ newton clean-sims --runtime 26.1
 Deletes iOS simulators. Without `--runtime`, deletes all unavailable (orphaned) simulators — these
 become unavailable when their iOS runtime is no longer installed, typically after upgrading Xcode.
 
-With `--runtime`, deletes all simulators for the specified iOS version. Useful for freeing disk space
-when migrating to a new OS version. Run this as your normal user, not with `sudo`; if CoreSimulator
-reports permission errors, fix ownership of `~/Library/Developer/CoreSimulator` and retry.
+With `--runtime`, deletes all simulators for the specified iOS version. Useful for freeing disk
+space when migrating to a new OS version. Run this as your normal user, not with `sudo`; if
+CoreSimulator reports permission errors, fix ownership of `~/Library/Developer/CoreSimulator` and
+retry.
 
 ### Devices (connected)
 
@@ -267,8 +269,78 @@ newton preview metricCards --open-simulator
 
 Runs the app with `-NewtonPreview <name>`, waits briefly, captures a screenshot, and displays it.
 Preview runs headlessly by default: Newton boots and controls CoreSimulator without opening
-Simulator.app. Pass `--open-simulator` when you want to watch the capture. This requires app-side
-opt-in code that maps preview names to SwiftUI views.
+Simulator.app. Pass `--open-simulator` when you want to watch the capture.
+
+This requires app-side opt-in code that maps preview names to SwiftUI views.
+
+#### Adding preview support to your app
+
+1. Read the `-NewtonPreview` launch argument from `UserDefaults` (launch args are automatically
+   parsed into `UserDefaults`) and route to a preview container before the normal app flow.
+
+   ```swift
+   // MyAppApp.swift
+   #if DEBUG
+   private let previewName: String? = UserDefaults.standard.string(forKey: "NewtonPreview")
+   #endif
+
+   var body: some Scene {
+       WindowGroup {
+           #if DEBUG
+           if let previewName {
+               NewtonPreviewContainer(name: previewName)
+           } else {
+               appContent
+           }
+           #else
+           appContent
+           #endif
+       }
+   }
+   ```
+
+2. Create a `NewtonPreviewContainer` that maps preview names to the views you want to screenshot.
+   For sheets, present them from a simple background view.
+
+   ```swift
+   // NewtonPreviewContainer.swift
+   #if DEBUG
+   import SwiftUI
+
+   struct NewtonPreviewContainer: View {
+       let name: String
+
+       var body: some View {
+           switch name {
+           case "metricCards":
+               MetricCardsPreview()
+           default:
+               Text("Unknown preview: \(name)")
+                   .frame(maxWidth: .infinity, maxHeight: .infinity)
+           }
+       }
+   }
+
+   private struct MetricCardsPreview: View {
+       var body: some View {
+           Color(.systemGroupedBackground)
+               .ignoresSafeArea()
+               .sheet(isPresented: .constant(true)) {
+                   MetricCardsSheet()
+               }
+       }
+   }
+   #endif
+   ```
+
+3. Capture the preview:
+
+   ```sh
+   newton preview metricCards --output /tmp/preview.png --display none
+   ```
+
+Use `--display none` when you don't have an inline image renderer (e.g. `viu`) installed; the
+screenshot is still saved to the path you specify.
 
 ### SourceKit-LSP
 

@@ -1,7 +1,4 @@
-import {
-  deleteSimulatorsByRuntime,
-  deleteUnavailableSimulators,
-} from "../ios/simulator.ts";
+import { deleteSimulatorsByRuntime, deleteUnavailableSimulators } from "../ios/simulator.ts";
 import { CleanSimsCliOptions } from "./options.ts";
 
 // Deletes iOS simulators: either unavailable (orphaned) or by specific runtime version.
@@ -25,7 +22,7 @@ export async function cleanSimsCommand(opts: CleanSimsCliOptions): Promise<void>
         console.log(failure.error.split("\n").map((line) => `  ${line}`).join("\n"));
       }
       console.log("\nIf this is a permission error, try quitting Simulator/Xcode, then run:");
-      console.log("  sudo chown -R \"$(whoami)\":staff ~/Library/Developer/CoreSimulator");
+      console.log('  sudo chown -R "$(whoami)":staff ~/Library/Developer/CoreSimulator');
       console.log("Then retry the Newton command without sudo.");
     }
   } else {

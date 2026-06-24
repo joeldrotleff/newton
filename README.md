@@ -169,10 +169,19 @@ subject's `OU` value as the Xcode `DEVELOPMENT_TEAM` id.
 ### Open in Xcode
 
 ```sh
-newton open
+newton xcode
 ```
 
 Opens the Xcode project/workspace recorded in `newton.json`.
+
+### Open a link in Simulator
+
+```sh
+newton open https://staging.sign-in.quest/XXujr66OeXY
+```
+
+Opens an HTTP(S) link in an already booted simulator. If multiple iOS simulators are booted, Newton
+prompts you to choose one.
 
 ### Build
 

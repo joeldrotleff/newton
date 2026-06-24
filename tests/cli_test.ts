@@ -24,7 +24,17 @@ Deno.test("buildCli registers all top-level subcommands", () => {
     "sims",
     "teams",
     "test",
+    "xcode",
   ]);
+});
+
+Deno.test("open subcommand targets an already booted simulator", () => {
+  const open = buildCli().getCommand("open");
+  if (!open) throw new Error("open command not found");
+
+  const optionNames = open.getOptions().map((o) => o.name);
+  assertEquals(optionNames.includes("sim"), false);
+  assertEquals(optionNames.includes("udid"), false);
 });
 
 Deno.test("preview subcommand declares simulator screenshot options", () => {

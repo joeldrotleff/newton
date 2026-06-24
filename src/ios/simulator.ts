@@ -216,7 +216,7 @@ export async function openSimulator(udid: string): Promise<void> {
   });
 }
 
-export async function bootedSimulatorUdid(): Promise<string> {
+export async function listBootedSimulators(): Promise<SimulatorDevice[]> {
   const { stdout } = await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "list", // List simulator resources.
@@ -225,11 +225,69 @@ export async function bootedSimulatorUdid(): Promise<string> {
     "--json", // Emit machine-readable device data.
   ]);
   const json = JSON.parse(stdout);
-  for (const runtimeDevices of Object.values<any[]>(json.devices ?? {})) {
-    const device = runtimeDevices.find((candidate) => candidate.state === "Booted");
-    if (device) return device.udid;
+  const devices: SimulatorDevice[] = [];
+
+  for (
+    const [runtimeKey, runtimeDevices] of Object.entries(json.devices ?? {}) as [string, any[]][]
+  ) {
+    if (!runtimeKey.includes("iOS")) continue;
+    const runtimeVersion = runtimeKey.replace(/^.*iOS[- ]/, "").replaceAll("-", ".");
+    for (const device of runtimeDevices) {
+      if (device.state !== "Booted") continue;
+      devices.push({
+        name: device.name,
+        udid: device.udid,
+        state: device.state,
+        runtime: runtimeKey,
+        runtimeVersion,
+        versionParts: parseVersion(runtimeVersion),
+        isAvailable: device.isAvailable !== false,
+      });
+    }
   }
-  fail("No booted simulator found. Pass --sim/--udid or run `newton run` first.");
+
+  return devices;
+}
+
+export async function bootedSimulatorUdid(): Promise<string> {
+  const device = await resolveBootedSimulator();
+  return device.udid;
+}
+
+export async function resolveBootedSimulator(): Promise<SimulatorDevice> {
+  const devices = await listBootedSimulators();
+  if (devices.length === 0) {
+    fail("No booted simulator found. Run `newton run` or boot a simulator first.");
+  }
+  if (devices.length === 1) return devices[0];
+  return await promptBootedSimulatorSelection(devices);
+}
+
+async function promptBootedSimulatorSelection(
+  candidates: SimulatorDevice[],
+): Promise<SimulatorDevice> {
+  console.log("Multiple booted simulators found:");
+  candidates.forEach((device, index) => {
+    console.log(`  ${index + 1}) ${device.name} (${device.runtimeVersion})`);
+  });
+
+  while (true) {
+    const answer = await readLine(`Select a simulator [1-${candidates.length}]: `);
+    if (answer === null) fail("No simulator selected.");
+    const choice = Number(answer.trim());
+    if (Number.isInteger(choice) && choice >= 1 && choice <= candidates.length) {
+      return candidates[choice - 1];
+    }
+    console.log(`Enter a number from 1 to ${candidates.length}.`);
+  }
+}
+
+async function readLine(message: string): Promise<string | null> {
+  await Deno.stdout.write(new TextEncoder().encode(message));
+  const buffer = new Uint8Array(1024);
+  const bytesRead = await Deno.stdin.read(buffer);
+  if (bytesRead === null) return null;
+  return new TextDecoder().decode(buffer.subarray(0, bytesRead)).split(/\r?\n/, 1)[0];
 }
 
 export async function launchSimulatorApp(

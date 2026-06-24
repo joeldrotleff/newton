@@ -1,8 +1,18 @@
-import { discoverProject } from "../ios/project.ts";
-import { runCliCommand } from "../util/process.ts";
+import { openUrlInBootedSimulator } from "../ios/open.ts";
+import { fail } from "../util/errors.ts";
 
-// Opens the discovered Xcode project/workspace in Xcode.
-export async function openCommand(): Promise<void> {
-  const container = await discoverProject();
-  await runCliCommand("open", [container.path]);
+export async function openCommand(link: string): Promise<void> {
+  validateLink(link);
+  const simulator = await openUrlInBootedSimulator(link);
+  console.log(`Opened link in ${simulator.name}: ${link}`);
+}
+
+function validateLink(link: string): void {
+  try {
+    const url = new URL(link);
+    if (url.protocol === "http:" || url.protocol === "https:") return;
+    fail("Link must use http:// or https://.");
+  } catch {
+    fail(`Invalid link: ${link}`);
+  }
 }

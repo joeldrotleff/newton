@@ -10,6 +10,7 @@ import { devicesCommand } from "./commands/devices.ts";
 import { initCommand } from "./commands/init.ts";
 import { lspCommand } from "./commands/lsp.ts";
 import { openCommand } from "./commands/open.ts";
+import { xcodeCommand } from "./commands/xcode.ts";
 import { previewCommand } from "./commands/preview.ts";
 import { psCommand } from "./commands/ps.ts";
 import { reloadCommand } from "./commands/reload.ts";
@@ -120,13 +121,24 @@ export function buildCli() {
         .action(() => teamsCommand()),
     )
     //
+    // xcode
+    //
+    .command(
+      "xcode",
+      new Command()
+        .description("Open the configured Xcode project/workspace in Xcode.")
+        .action(() => xcodeCommand()),
+    )
+    //
     // open
     //
     .command(
       "open",
       new Command()
-        .description("Open the configured Xcode project/workspace in Xcode.")
-        .action(() => openCommand()),
+        .description("Open an HTTP(S) link in a currently booted simulator.")
+        .arguments("<link:string>")
+        .example("Open universal link", "newton open https://staging.sign-in.quest/XXujr66OeXY")
+        .action((_options, link) => openCommand(link)),
     )
     //
     // build

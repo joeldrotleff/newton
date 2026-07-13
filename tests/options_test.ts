@@ -22,6 +22,26 @@ Deno.test("resolveRunOptions reads custom configuration from newton config", asy
   }
 });
 
+Deno.test("resolveRunOptions selects the Mac destination from config", async () => {
+  const cwd = Deno.cwd();
+  const tempDir = await Deno.makeTempDir();
+  try {
+    Deno.chdir(tempDir);
+    await Deno.writeTextFile(
+      CONFIG_FILE,
+      JSON.stringify({ platform: "macos", scheme: "Meh", appName: "Meh" }),
+    );
+
+    const options = await resolveRunOptions({});
+
+    assertEquals(options.platform, "macos");
+    assertEquals(options.target, "mac");
+  } finally {
+    Deno.chdir(cwd);
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
 Deno.test("resolveRunOptions defaults logs on without --detach", async () => {
   const cwd = Deno.cwd();
   const tempDir = await Deno.makeTempDir();

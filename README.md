@@ -1,13 +1,14 @@
 # Newton
 
-Newton is a standalone CLI for iOS app build, test, run, screenshot, preview, and SourceKit-LSP
-workflows.
+Newton is a standalone CLI for iOS and macOS app scaffolding, build, run, test, screenshot, preview,
+and SourceKit-LSP workflows.
 
-It is built for fast terminal-driven iOS development: pick a good simulator, build with
-`xcodebuild`, install and launch the app, stream logs when useful, and capture screenshots without
-opening Xcode.
+It is built for fast terminal-driven Apple platform development: scaffold native SwiftUI projects,
+build with `xcodebuild`, launch apps, stream logs when useful, and capture iOS simulator screenshots
+without opening Xcode.
 
-Newton is intentionally iOS-only.
+Simulator, connected-device, screenshot, and preview commands are iOS-specific. Native macOS
+projects support create, build, run, Xcode, build-log, and LSP workflows.
 
 ## Status
 
@@ -68,9 +69,9 @@ For local development without compiling:
 deno run --allow-run --allow-read --allow-write --allow-env src/main.ts --help
 ```
 
-## Quick start in an iOS project
+## Quick start
 
-From an iOS project root:
+Create and run an iOS project:
 
 ```sh
 newton create "My App"
@@ -80,6 +81,14 @@ newton run --detach
 newton screenshot --display open
 ```
 
+Create and run a native macOS project:
+
+```sh
+newton create "Menu Helper" --platform macos
+newton build
+newton run --detach
+```
+
 `newton init` creates `newton.json` with sensible local defaults and adds `.newton/` to
 `.gitignore`.
 
@@ -87,6 +96,7 @@ Example `newton.json`:
 
 ```json
 {
+  "platform": "ios",
   "scheme": "MyApp",
   "project": "ios/MyApp.xcodeproj",
   "configuration": "Debug",
@@ -104,6 +114,7 @@ fields are optional; `newton init` writes them based on the current Xcode projec
 
 ```sh
 newton create "My App"
+newton create "Menu Helper" --platform macos
 newton create "My App" --output ~/code/my-app --bundle-id com.example.myapp
 newton create "My App" --team-id 4DQ648JWVG
 newton create "My App" --no-team
@@ -111,8 +122,9 @@ newton init
 newton init --force
 ```
 
-`newton create` creates a starter SwiftUI iOS app in `ios/`, writes `newton.json`, and adds
-`.newton/` to `.gitignore`. By default, the module name is derived by removing characters that are
+`newton create` creates a starter SwiftUI app, writes `newton.json`, and adds `.newton/` to
+`.gitignore`. It creates an iOS app under `ios/` by default; pass `--platform macos` for a native
+macOS app under `macos/`. By default, the module name is derived by removing characters that are
 unsafe for Swift identifiers. During creation, Newton lists Apple Development signing teams detected
 from local certificates and prompts for the team to write as `DEVELOPMENT_TEAM`; pass `--team-id` or
 `--no-team` to skip the prompt.
@@ -194,9 +206,10 @@ newton build --device "Joel's iPhone"
 newton build --verbose
 ```
 
-Builds the configured scheme with `xcodebuild`. Scheme, project/workspace, and configuration come
-from `newton.json`. Use `--idiom` or `--app-store` to pick a simulator other than the default, or
-`--device` to target a connected device.
+Builds the configured scheme with `xcodebuild`. Platform, scheme, project/workspace, and
+configuration come from `newton.json`. macOS projects build for the local Mac. For iOS projects, use
+`--idiom` or `--app-store` to pick a simulator other than the default, or `--device` to target a
+connected device.
 
 ### Test
 
@@ -232,10 +245,11 @@ newton run --device --detach
 newton run --device "Joel's iPhone"
 ```
 
-Builds, installs, and launches the app on a simulator or connected device.
+Builds and launches the app on its configured platform. iOS apps are installed on a simulator or
+connected device; macOS apps launch directly on the local Mac.
 
-By default, `run` attaches to the app console. Use `--detach` to launch the app and then disconnect
-without streaming logs.
+By default, `run` attaches to the app console. Use `--detach` to launch and exit without streaming
+logs.
 
 Convenience logging flags are passed as app launch arguments:
 

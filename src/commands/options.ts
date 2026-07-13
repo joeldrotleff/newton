@@ -1,4 +1,4 @@
-import { loadConfig, resolveSchemeSettings } from "../ios/config.ts";
+import { ApplePlatform, loadConfig, resolveSchemeSettings } from "../ios/config.ts";
 import { RunOptions } from "../ios/run.ts";
 import { ScreenshotDisplay } from "../ios/screenshot.ts";
 
@@ -10,6 +10,7 @@ export interface InitCommandOptions {
 }
 
 export interface CreateCommandOptions {
+  platform?: ApplePlatform;
   output?: string;
   bundleId?: string;
   teamId?: string;
@@ -79,17 +80,19 @@ export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions
   const scheme = opts.scheme ?? config.scheme;
   let configuration = opts.configuration ?? config.configuration;
   let appName = config.appName;
+  const platform = config.platform ?? "ios";
   if (opts.scheme) {
-    const derived = await resolveSchemeSettings(opts.scheme);
+    const derived = await resolveSchemeSettings(opts.scheme, platform);
     configuration = opts.configuration ?? derived.configuration ?? config.configuration;
     appName = derived.appName ?? config.appName;
   }
 
   return {
+    platform,
     scheme,
     project: config.project,
     workspace: config.workspace,
-    target,
+    target: platform === "macos" ? "mac" : target,
     configuration,
     appName,
     // Soft default; resolveSimulator ignores it when an idiom/app-store flag is present.

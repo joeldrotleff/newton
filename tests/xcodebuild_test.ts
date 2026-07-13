@@ -18,6 +18,18 @@ Deno.test("buildArgs constructs simulator xcodebuild command", () => {
   assertEquals(args.includes("-resolvePackageDependencies"), false);
 });
 
+Deno.test("buildArgs constructs native macOS xcodebuild command", () => {
+  const args = buildArgs({
+    container: { kind: "project", path: "/tmp/Meh.xcodeproj" },
+    scheme: "Meh",
+    destination: { name: "My Mac" },
+    target: "mac",
+  });
+
+  assertEquals(args.includes("platform=macOS"), true);
+  assertEquals(args.includes("CODE_SIGN_IDENTITY=-"), false);
+});
+
 Deno.test("buildArgs passes custom configuration names through to xcodebuild", () => {
   const args = buildArgs({
     container: { kind: "project", path: "/tmp/Axion.xcodeproj" },

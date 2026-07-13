@@ -34,6 +34,21 @@ Deno.test("locateBuiltApp calculates device app path from config", async () => {
   );
 });
 
+Deno.test("locateBuiltApp calculates macOS app path from config", async () => {
+  await using fixture = await appFixture();
+  const appPath = `${fixture.derivedData}/Build/Products/Debug/Meh.app`;
+  await createApp(appPath);
+
+  assertEquals(
+    await locateBuiltApp(buildOptions(fixture, {
+      configuration: "Debug",
+      appName: "Meh",
+      target: "mac",
+    })),
+    appPath,
+  );
+});
+
 Deno.test("locateBuiltApp requires appName from newton config", async () => {
   await using fixture = await appFixture();
 
@@ -81,15 +96,19 @@ function buildOptions(
     scheme: "Silo Staging",
     configuration: options.configuration,
     appName: options.appName,
-    destination: target === "device" ? { name: "iPhone", identifier: "DEVICE-UDID" } : {
-      name: "iPhone 17",
-      udid: "SIM-UDID",
-      state: "Booted",
-      runtime: "iOS 18.0",
-      runtimeVersion: "18.0",
-      versionParts: [18, 0],
-      isAvailable: true,
-    },
+    destination: target === "mac"
+      ? { name: "My Mac" }
+      : target === "device"
+      ? { name: "iPhone", identifier: "DEVICE-UDID" }
+      : {
+        name: "iPhone 17",
+        udid: "SIM-UDID",
+        state: "Booted",
+        runtime: "iOS 18.0",
+        runtimeVersion: "18.0",
+        versionParts: [18, 0],
+        isAvailable: true,
+      },
     target,
   };
 }

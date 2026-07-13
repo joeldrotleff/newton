@@ -1,13 +1,16 @@
 import { fail } from "../util/errors.ts";
 import { dirname, exists, join, relative, resolve } from "../util/paths.ts";
-import { ensureInitGitignoreEntries, NewtonConfig, writeConfig } from "./config.ts";
+import { ApplePlatform, ensureInitGitignoreEntries, NewtonConfig, writeConfig } from "./config.ts";
 
-const TEMPLATE_ROOT = decodeURIComponent(
-  new URL("../../templates/ios-starter", import.meta.url).pathname,
-);
+function templateRoot(platform: ApplePlatform): string {
+  return decodeURIComponent(
+    new URL(`../../templates/${platform}-starter`, import.meta.url).pathname,
+  );
+}
 
 export interface CreateProjectOptions {
   name: string;
+  platform?: ApplePlatform;
   output?: string;
   bundleId?: string;
   teamId?: string;
@@ -18,8 +21,9 @@ interface ProjectNames {
   moduleName: string;
   bundleId: string;
   teamId?: string;
+  platform: ApplePlatform;
   root: string;
-  iosDir: string;
+  sourceDir: string;
   projectDir: string;
 }
 
@@ -30,8 +34,11 @@ export async function createProject(options: CreateProjectOptions): Promise<Newt
   await writeProjectFiles(names);
 
   const config: NewtonConfig = {
+    platform: names.platform,
     scheme: names.moduleName,
     project: relative(names.root, names.projectDir),
+    configuration: "Debug",
+    appName: names.moduleName,
   };
 
   await writeConfig(config, names.root);
@@ -55,30 +62,35 @@ export function swiftModuleName(name: string): string {
 function projectNames(options: CreateProjectOptions): ProjectNames {
   const root = resolve(options.output ?? Deno.cwd());
   const moduleName = swiftModuleName(options.name);
-  const iosDir = join(root, "ios");
+  const platform = options.platform ?? "ios";
+  const sourceDir = join(root, platform);
   return {
     displayName: options.name,
     moduleName,
     bundleId: options.bundleId ?? `com.example.${moduleName}`,
     teamId: options.teamId,
+    platform,
     root,
-    iosDir,
-    projectDir: join(iosDir, `${moduleName}.xcodeproj`),
+    sourceDir,
+    projectDir: join(sourceDir, `${moduleName}.xcodeproj`),
   };
 }
 
 async function ensureCreateSafe(names: ProjectNames): Promise<void> {
-  if (await exists(names.iosDir)) fail(`${names.iosDir} already exists; not overwriting.`);
+  if (await exists(names.sourceDir)) {
+    fail(`${names.sourceDir} already exists; not overwriting.`);
+  }
   if (await exists(join(names.root, "newton.json"))) {
     fail(`${join(names.root, "newton.json")} already exists; not overwriting.`);
   }
 }
 
 async function writeProjectFiles(names: ProjectNames): Promise<void> {
-  for await (const templatePath of templateFiles(TEMPLATE_ROOT)) {
+  const root = templateRoot(names.platform);
+  for await (const templatePath of templateFiles(root)) {
     const outputPath = join(
       names.root,
-      renderTemplatePath(relative(TEMPLATE_ROOT, templatePath), names),
+      renderTemplatePath(relative(root, templatePath), names),
     );
     await writeText(outputPath, renderTemplate(await Deno.readTextFile(templatePath), names));
   }

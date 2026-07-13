@@ -1,18 +1,20 @@
 import { fail } from "../util/errors.ts";
 import { missingRequiredConfigFieldMessage } from "./config.ts";
-import { runCliCommand } from "../util/process.ts";
+import { join } from "../util/paths.ts";
+import { runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
 import { locateBuiltApp, readBundleId } from "./appBundle.ts";
 import { installDeviceApp, launchDeviceApp, resolveDevice } from "./device.ts";
 import { discoverProject } from "./project.ts";
 import { bootSimulator, launchSimulatorApp, openSimulator, resolveSimulator } from "./simulator.ts";
 import { removeSession, writeSession } from "./session.ts";
-import { build } from "./xcodebuild.ts";
+import { build, macDestination } from "./xcodebuild.ts";
 
 export interface RunOptions {
+  platform?: "ios" | "macos";
   scheme?: string;
   project?: string;
   workspace?: string;
-  target?: "sim" | "device";
+  target?: "sim" | "device" | "mac";
   configuration?: string;
   appName?: string;
   sim?: string;
@@ -35,6 +37,11 @@ export async function runApp(options: RunOptions): Promise<void> {
   const target = options.target ?? "sim";
   const container = await discoverProject();
   const appArgs = launchArguments(options);
+
+  if (target === "mac") {
+    await runMacApp(options, container, appArgs);
+    return;
+  }
 
   if (target === "device") {
     const device = await resolveDevice(options.device);
@@ -273,6 +280,36 @@ function waitForReloadOrInterrupt(): Promise<"reload" | "interrupted"> {
     Deno.addSignalListener("SIGUSR1", onReload);
     Deno.addSignalListener("SIGINT", onInterrupt);
   });
+}
+
+async function runMacApp(
+  options: RunOptions,
+  container: Awaited<ReturnType<typeof discoverProject>>,
+  appArgs: string[],
+): Promise<void> {
+  console.log("▸ Destination: My Mac");
+  await build({
+    ...options,
+    container,
+    scheme: options.scheme!,
+    destination: macDestination,
+    target: "mac",
+  });
+  const appPath = await locateBuiltApp({
+    ...options,
+    container,
+    scheme: options.scheme!,
+    destination: macDestination,
+    target: "mac",
+  });
+
+  if (!(options.logs ?? true)) {
+    await runCliCommand("open", ["-n", appPath, "--args", ...appArgs]);
+    return;
+  }
+
+  if (!options.appName) fail(await missingRequiredConfigFieldMessage("appName"));
+  await runCliCommandInTerminal(join(appPath, "Contents", "MacOS", options.appName), appArgs);
 }
 
 export function launchArguments(options: RunOptions): string[] {

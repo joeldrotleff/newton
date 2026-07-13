@@ -60,6 +60,35 @@ async function readGeneratedTextFiles(root: string): Promise<Map<string, string>
   return files;
 }
 
+Deno.test("createProject writes a native macOS project", async () => {
+  const tempDir = await Deno.makeTempDir();
+  try {
+    const config = await createProject({
+      name: "Menu Helper",
+      platform: "macos",
+      output: tempDir,
+      bundleId: "com.example.menuhelper",
+    });
+
+    assertEquals(config.platform, "macos");
+    assertEquals(config.scheme, "MenuHelper");
+    assertEquals(config.project, "macos/MenuHelper.xcodeproj");
+    assertEquals(config.appName, "MenuHelper");
+
+    const project = await Deno.readTextFile(
+      `${tempDir}/macos/MenuHelper.xcodeproj/project.pbxproj`,
+    );
+    assertStringIncludes(project, "SDKROOT = macosx;");
+    assertStringIncludes(project, "SUPPORTED_PLATFORMS = macosx;");
+    assertStringIncludes(project, "PRODUCT_BUNDLE_IDENTIFIER = com.example.menuhelper;");
+
+    const app = await Deno.readTextFile(`${tempDir}/macos/MenuHelper/MenuHelperApp.swift`);
+    assertStringIncludes(app, "struct MenuHelperApp: App");
+  } finally {
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
 Deno.test("createProject writes development team when provided", async () => {
   const tempDir = await Deno.makeTempDir();
   try {

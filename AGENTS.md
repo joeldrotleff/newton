@@ -1,7 +1,7 @@
 # Newton — Agent Guide
 
-Standalone Deno CLI for iOS app build, test, run, screenshot, preview, and SourceKit-LSP workflows.
-iOS-only, macOS-only.
+Standalone Deno CLI for iOS and macOS app scaffolding, build, run, test, screenshot, preview, and
+SourceKit-LSP workflows. Simulator/device/screenshot/preview commands remain iOS-specific.
 
 ## Commands
 
@@ -26,8 +26,8 @@ deno run --allow-run --allow-read --allow-write --allow-env src/main.ts <subcomm
 - [src/commands/](src/commands/) — thin per-subcommand orchestrators
   - [options.ts](src/commands/options.ts) — `RunCliOptions`/`PreviewCliOptions` types and
     `resolveRunOptions` which layers CLI flags over `newton.json`
-- [src/ios/](src/ios/) — domain logic (project discovery, xcodebuild, simulator/device, screenshot,
-  signing, scaffold)
+- [src/ios/](src/ios/) — Apple platform domain logic (project discovery, xcodebuild,
+  simulator/device, screenshot, signing, and iOS/macOS scaffolding)
   - [config.ts](src/ios/config.ts) — `newton.json` schema and read/write
   - [project.ts](src/ios/project.ts) — `discoverProject()` (config → fs scan)
   - [xcodebuild.ts](src/ios/xcodebuild.ts) — `buildArgs`, `testArgs`, `build`, `test`,
@@ -38,7 +38,7 @@ deno run --allow-run --allow-read --allow-write --allow-env src/main.ts <subcomm
   - [session.ts](src/ios/session.ts) — `.newton/run.json` session file for inter-process reload
     signaling
 - [src/util/](src/util/) — `errors.ts`, `paths.ts`, `process.ts`, `spinner.ts` (build progress)
-- [templates/](templates/) — starter SwiftUI project rendered by `newton create`
+- [templates/](templates/) — native iOS and macOS SwiftUI starters rendered by `newton create`
 - [tests/](tests/) — Deno test files; one per source module
 
 ## Architecture notes

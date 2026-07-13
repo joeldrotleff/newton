@@ -12,7 +12,10 @@ import { showBuildSettings } from "./xcodebuild.ts";
 
 export const CONFIG_FILE = "newton.json";
 
+export type ApplePlatform = "ios" | "macos";
+
 export interface NewtonConfig {
+  platform?: ApplePlatform;
   scheme?: string;
   project?: string;
   workspace?: string;
@@ -116,6 +119,7 @@ export async function listSchemes(container: XcodeContainer): Promise<string[]> 
 // Uses a generic destination since these settings don't depend on the device.
 export async function resolveSchemeSettings(
   scheme: string,
+  platform: ApplePlatform = "ios",
 ): Promise<{ configuration?: string; appName?: string }> {
   const container = await discoverProject();
   const { stdout } = await runCliCommand("xcodebuild", [
@@ -123,7 +127,7 @@ export async function resolveSchemeSettings(
     "-scheme", // Inspect settings for the named scheme.
     scheme,
     "-destination", // Generic destination — configuration/product don't vary by device.
-    "generic/platform=iOS Simulator",
+    platform === "macos" ? "generic/platform=macOS" : "generic/platform=iOS Simulator",
     "-derivedDataPath", // Keep this query out of the default DerivedData location.
     defaultDerivedDataPath(),
     "-showBuildSettings",

@@ -24,6 +24,7 @@ const VERSION = "0.1.0";
 
 // Constrained enum types — cliffy validates the value and feeds them to shell completions.
 const idiomType = new EnumType(["iphone", "ipad"]);
+const platformType = new EnumType(["ios", "macos"]);
 const displayType = new EnumType(["inline", "open", "none"]);
 
 // Subcommand option groups are inlined per-command rather than shared via helpers,
@@ -35,7 +36,7 @@ export function buildCli() {
     .name("newton")
     .version(VERSION)
     .description(
-      "iOS automation toolkit: scaffold, build, run, screenshot, and preview Xcode projects.",
+      "Apple platform toolkit: scaffold, build, and run iOS and macOS Xcode projects.",
     )
     .meta("Docs", "https://github.com/joeldrotleff/newton")
     .action(function () {
@@ -59,13 +60,18 @@ export function buildCli() {
     .command(
       "create",
       new Command()
-        .description("Scaffold a new SwiftUI iOS project and write its Newton config.")
+        .type("platform", platformType)
+        .description("Scaffold a new SwiftUI iOS or macOS project and write its Newton config.")
         .arguments("<name:string>")
+        .option("--platform <platform:platform>", "Target platform (ios or macos)", {
+          default: "ios",
+        })
         .option("--output <path:file>", "Directory in which to create the project")
         .option("--bundle-id <id:string>", "Bundle identifier (e.g. com.acme.MyApp)")
         .option("--team-id <id:string>", "Apple Development team ID for code signing")
         .option("--no-team", "Skip development-team selection")
-        .example("Quickstart", "newton create MyApp")
+        .example("iOS quickstart", "newton create MyApp")
+        .example("macOS quickstart", "newton create MyApp --platform macos")
         .example("Custom bundle id", "newton create MyApp --bundle-id com.acme.MyApp")
         .example("No signing", "newton create MyApp --no-team")
         .action((options, name) => createCommand(name, options)),
@@ -147,7 +153,7 @@ export function buildCli() {
       "build",
       new Command()
         .type("idiom", idiomType)
-        .description("Build the configured scheme for a simulator or connected device.")
+        .description("Build the configured scheme for its Apple platform destination.")
         .option("--scheme <name:string>", "Override the scheme from newton.json")
         .option(
           "--configuration <name:string>",
@@ -212,7 +218,7 @@ export function buildCli() {
       "run",
       new Command()
         .type("idiom", idiomType)
-        .description("Build, install, launch, and stream logs for the app.")
+        .description("Build and launch the app on its configured Apple platform.")
         .option("--scheme <name:string>", "Override the scheme from newton.json")
         .option(
           "--configuration <name:string>",

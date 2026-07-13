@@ -8,16 +8,30 @@ import { BuildOptions } from "./xcodebuild.ts";
 export async function locateBuiltApp(options: BuildOptions): Promise<string> {
   if (!options.appName) fail(await missingRequiredConfigFieldMessage("appName"));
   const configuration = options.configuration ?? "Debug";
-  const sdk = options.target === "device" ? "iphoneos" : "iphonesimulator";
+  const productDirectory = buildProductsDirectory(configuration, options.target);
   const appPath = join(
     defaultDerivedDataPath(),
     "Build",
     "Products",
-    `${configuration}-${sdk}`,
+    productDirectory,
     `${options.appName}.app`,
   );
   if (await exists(appPath)) return appPath;
   fail(`Could not locate built .app at ${appPath}.`);
+}
+
+function buildProductsDirectory(
+  configuration: string,
+  target: BuildOptions["target"],
+): string {
+  switch (target) {
+    case "mac":
+      return configuration;
+    case "device":
+      return `${configuration}-iphoneos`;
+    case "sim":
+      return `${configuration}-iphonesimulator`;
+  }
 }
 
 export async function readBundleId(appPath: string): Promise<string> {

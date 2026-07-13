@@ -8,19 +8,26 @@ import {
 } from "../util/process.ts";
 import { BuildLogger, getTimestampedLogPath } from "../util/spinner.ts";
 
+export interface MacDestination {
+  name: "My Mac";
+}
+
+export const macDestination: MacDestination = { name: "My Mac" };
+
 export interface BuildOptions {
   container: XcodeContainer;
   scheme: string;
   configuration?: string;
   appName?: string;
-  destination: SimulatorDevice | IOSDevice;
-  target: "sim" | "device";
+  destination: SimulatorDevice | IOSDevice | MacDestination;
+  target: "sim" | "device" | "mac";
   swiftFlags?: string[];
   verbose?: boolean;
   action?: "build" | "clean build";
 }
 
 export function buildDestination(options: Pick<BuildOptions, "destination" | "target">): string {
+  if (options.target === "mac") return "platform=macOS";
   if (options.target === "device") {
     const device = options.destination as IOSDevice;
     return `platform=iOS,id=${device.hardwareUdid ?? device.identifier}`;

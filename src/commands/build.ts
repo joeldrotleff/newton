@@ -1,7 +1,7 @@
 import { resolveDevice } from "../ios/device.ts";
 import { discoverProject } from "../ios/project.ts";
 import { resolveSimulator } from "../ios/simulator.ts";
-import { build } from "../ios/xcodebuild.ts";
+import { build, BuildOptions, macDestination } from "../ios/xcodebuild.ts";
 import { missingRequiredConfigFieldMessage } from "../ios/config.ts";
 import { fail } from "../util/errors.ts";
 import { resolveRunOptions, RunCliOptions } from "./options.ts";
@@ -13,14 +13,7 @@ export async function buildCommand(opts: RunCliOptions): Promise<void> {
 
   const target = options.target ?? "sim";
   const container = await discoverProject();
-  const destination = target === "device"
-    ? await resolveDevice(options.device)
-    : await resolveSimulator({
-      sim: options.sim,
-      idiom: options.idiom,
-      appStore: options.appStore,
-      preferred: options.preferred,
-    });
+  const destination = await resolveBuildDestination(options, target);
 
   await build({
     ...options,
@@ -28,5 +21,19 @@ export async function buildCommand(opts: RunCliOptions): Promise<void> {
     scheme: options.scheme,
     destination,
     target,
+  });
+}
+
+async function resolveBuildDestination(
+  options: Awaited<ReturnType<typeof resolveRunOptions>>,
+  target: BuildOptions["target"],
+): Promise<BuildOptions["destination"]> {
+  if (target === "mac") return macDestination;
+  if (target === "device") return await resolveDevice(options.device);
+  return await resolveSimulator({
+    sim: options.sim,
+    idiom: options.idiom,
+    appStore: options.appStore,
+    preferred: options.preferred,
   });
 }

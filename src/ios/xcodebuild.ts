@@ -1,5 +1,6 @@
 import { containerArgs, defaultDerivedDataPath, XcodeContainer } from "./project.ts";
-import { IOSDevice } from "./device.ts";
+import { AppleDevice } from "./device.ts";
+import { ApplePlatform, deviceBuildDestination, simulatorBuildDestination } from "./platform.ts";
 import { SimulatorDevice } from "./simulator.ts";
 import {
   runCliCommand,
@@ -19,20 +20,24 @@ export interface BuildOptions {
   scheme: string;
   configuration?: string;
   appName?: string;
-  destination: SimulatorDevice | IOSDevice | MacDestination;
+  destination: SimulatorDevice | AppleDevice | MacDestination;
   target: "sim" | "device" | "mac";
+  platform?: ApplePlatform;
   swiftFlags?: string[];
   verbose?: boolean;
   action?: "build" | "clean build";
 }
 
-export function buildDestination(options: Pick<BuildOptions, "destination" | "target">): string {
+export function buildDestination(
+  options: Pick<BuildOptions, "destination" | "target" | "platform">,
+): string {
   if (options.target === "mac") return "platform=macOS";
+  const platform = options.platform === "watchos" ? "watchos" : "ios";
   if (options.target === "device") {
-    const device = options.destination as IOSDevice;
-    return `platform=iOS,id=${device.hardwareUdid ?? device.identifier}`;
+    const device = options.destination as AppleDevice;
+    return deviceBuildDestination(platform, device.hardwareUdid ?? device.identifier);
   }
-  return `platform=iOS Simulator,id=${(options.destination as SimulatorDevice).udid}`;
+  return simulatorBuildDestination(platform, (options.destination as SimulatorDevice).udid);
 }
 
 export async function build(options: BuildOptions): Promise<void> {
@@ -177,10 +182,10 @@ function formatBuildFailureDiagnostic(
 }
 
 function formatMissingPlatformDiagnostic(logContents: string): string | null {
-  const match = logContents.match(/iOS\s+([\d.]+)\s+is not installed/i);
+  const match = logContents.match(/(iOS|watchOS)\s+([\d.]+)\s+is not installed/i);
   if (!match) return null;
 
-  return `Error: iOS ${match[1]} is not installed for the selected destination.\n` +
+  return `Error: ${match[1]} ${match[2]} is not installed for the selected destination.\n` +
     "Install it from Xcode > Settings > Components, then try again.";
 }
 

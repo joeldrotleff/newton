@@ -1,4 +1,5 @@
 import { createProject } from "../ios/create.ts";
+import { platformDisplayName } from "../ios/platform.ts";
 import { chooseDevelopmentTeam } from "../ios/signing.ts";
 import { CreateCommandOptions } from "./options.ts";
 
@@ -15,7 +16,7 @@ export async function createCommand(name: string, opts: CreateCommandOptions): P
     teamId,
   });
 
-  console.log(`Created ${opts.platform === "macos" ? "macOS" : "iOS"} project`);
+  console.log(`Created ${platformDisplayName(opts.platform ?? "ios")} project`);
   console.log(`  scheme: ${config.scheme}`);
   console.log(`  project: ${config.project}`);
   if (teamId) console.log(`  developmentTeam: ${teamId}`);

@@ -3,12 +3,17 @@ import { missingRequiredConfigFieldMessage } from "./config.ts";
 import { exists, join } from "../util/paths.ts";
 import { runCliCommand } from "../util/process.ts";
 import { defaultDerivedDataPath } from "./project.ts";
+import { buildProductsSuffix } from "./platform.ts";
 import { BuildOptions } from "./xcodebuild.ts";
 
 export async function locateBuiltApp(options: BuildOptions): Promise<string> {
   if (!options.appName) fail(await missingRequiredConfigFieldMessage("appName"));
   const configuration = options.configuration ?? "Debug";
-  const productDirectory = buildProductsDirectory(configuration, options.target);
+  const productDirectory = buildProductsDirectory(
+    configuration,
+    options.platform ?? "ios",
+    options.target,
+  );
   const appPath = join(
     defaultDerivedDataPath(),
     "Build",
@@ -22,16 +27,11 @@ export async function locateBuiltApp(options: BuildOptions): Promise<string> {
 
 function buildProductsDirectory(
   configuration: string,
+  platform: NonNullable<BuildOptions["platform"]>,
   target: BuildOptions["target"],
 ): string {
-  switch (target) {
-    case "mac":
-      return configuration;
-    case "device":
-      return `${configuration}-iphoneos`;
-    case "sim":
-      return `${configuration}-iphonesimulator`;
-  }
+  const suffix = buildProductsSuffix(platform, target);
+  return suffix ? `${configuration}-${suffix}` : configuration;
 }
 
 export async function readBundleId(appPath: string): Promise<string> {

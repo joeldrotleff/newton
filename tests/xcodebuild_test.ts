@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { SimulatorDevice } from "../src/ios/simulator.ts";
-import { IOSDevice } from "../src/ios/device.ts";
+import { AppleDevice } from "../src/ios/device.ts";
 import { buildArgs, testArgs } from "../src/ios/xcodebuild.ts";
 
 Deno.test("buildArgs constructs simulator xcodebuild command", () => {
@@ -16,6 +16,19 @@ Deno.test("buildArgs constructs simulator xcodebuild command", () => {
   assertEquals(args.includes("platform=iOS Simulator,id=SIM-UDID"), true);
   assertEquals(args.includes("CODE_SIGN_IDENTITY=-"), true);
   assertEquals(args.includes("-resolvePackageDependencies"), false);
+});
+
+Deno.test("buildArgs constructs watchOS simulator xcodebuild command", () => {
+  const args = buildArgs({
+    container: { kind: "project", path: "/tmp/Bartable.xcodeproj" },
+    scheme: "Bartable",
+    platform: "watchos",
+    destination: watchSimulatorDevice,
+    target: "sim",
+  });
+
+  assertEquals(args.includes("platform=watchOS Simulator,id=WATCH-SIM-UDID"), true);
+  assertEquals(args.includes("CODE_SIGN_IDENTITY=-"), true);
 });
 
 Deno.test("buildArgs constructs native macOS xcodebuild command", () => {
@@ -53,6 +66,19 @@ Deno.test("buildArgs targets a connected device with id= destination and no sim 
 
   assertEquals(args.includes("platform=iOS,id=HARDWARE-UDID"), true);
   assertEquals(args.includes("CODE_SIGN_IDENTITY=-"), false);
+});
+
+Deno.test("buildArgs targets a connected Apple Watch", () => {
+  const args = buildArgs({
+    container: { kind: "project", path: "/tmp/Bartable.xcodeproj" },
+    scheme: "Bartable",
+    platform: "watchos",
+    destination: watchDeviceDestination,
+    target: "device",
+  });
+
+  assertEquals(args.includes("platform=watchOS,id=WATCH-HARDWARE-UDID"), true);
+  assertEquals(args.includes("-allowProvisioningUpdates"), true);
 });
 
 Deno.test("buildArgs falls back to identifier when device hardwareUdid is missing", () => {
@@ -127,6 +153,7 @@ Deno.test("buildArgs prepends 'clean' when action is 'clean build'", () => {
 });
 
 const simulatorDevice: SimulatorDevice = {
+  platform: "ios",
   name: "iPhone 17",
   udid: "SIM-UDID",
   state: "Shutdown",
@@ -136,8 +163,26 @@ const simulatorDevice: SimulatorDevice = {
   isAvailable: true,
 };
 
-const deviceDestination: IOSDevice = {
+const watchSimulatorDevice: SimulatorDevice = {
+  platform: "watchos",
+  name: "Apple Watch Series 11 (46mm)",
+  udid: "WATCH-SIM-UDID",
+  state: "Shutdown",
+  runtime: "watchOS 26.5",
+  runtimeVersion: "26.5",
+  versionParts: [26, 5],
+  isAvailable: true,
+};
+
+const deviceDestination: AppleDevice = {
   name: "My iPhone",
   identifier: "DEVICE-ID",
   hardwareUdid: "HARDWARE-UDID",
+};
+
+const watchDeviceDestination: AppleDevice = {
+  name: "My Apple Watch",
+  identifier: "WATCH-DEVICE-ID",
+  hardwareUdid: "WATCH-HARDWARE-UDID",
+  platform: "watchOS",
 };

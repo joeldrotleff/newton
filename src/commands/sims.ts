@@ -3,12 +3,14 @@ import { isAppStoreCompatible, listSimulators, resolveSimulator } from "../ios/s
 import { loadConfig } from "../ios/config.ts";
 import { SimsCliOptions } from "./options.ts";
 
-// Lists installed iOS simulators and marks Newton's default choice.
+// Lists simulators for the configured platform and marks Newton's default choice.
 export async function simsCommand(opts: SimsCliOptions): Promise<void> {
   const config = await loadConfig();
-  const devices = await listSimulators();
+  const platform = config.platform === "watchos" ? "watchos" : "ios";
+  const devices = await listSimulators(platform);
   // Mirror resolveSimulator's selection so the '*' marker matches what `run` would launch.
   const selected = await resolveSimulator({
+    platform,
     idiom: opts.idiom,
     appStore: opts.appStore,
     preferred: config.preferredSimulator,

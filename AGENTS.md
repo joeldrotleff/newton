@@ -1,7 +1,8 @@
 # Newton — Agent Guide
 
-Standalone Deno CLI for iOS and macOS app scaffolding, build, run, test, screenshot, preview, and
-SourceKit-LSP workflows. Simulator/device/screenshot/preview commands remain iOS-specific.
+Standalone Deno CLI for iOS, watchOS, and macOS app scaffolding, build, run, test, screenshot,
+preview, and SourceKit-LSP workflows. Simulator/device/screenshot/preview commands support iOS and
+watchOS.
 
 ## Commands
 
@@ -38,14 +39,15 @@ deno run --allow-run --allow-read --allow-write --allow-env src/main.ts <subcomm
   - [session.ts](src/ios/session.ts) — `.newton/run.json` session file for inter-process reload
     signaling
 - [src/util/](src/util/) — `errors.ts`, `paths.ts`, `process.ts`, `spinner.ts` (build progress)
-- [templates/](templates/) — native iOS and macOS SwiftUI starters rendered by `newton create`
+- [templates/](templates/) — native iOS, watchOS, and macOS SwiftUI starters rendered by
+  `newton create`
 - [tests/](tests/) — Deno test files; one per source module
 
 ## Architecture notes
 
-- **`newton.json` is the source of truth** for scheme, project/workspace, configuration, appName,
-  and preferred simulator. CLI flags only cover runtime concerns (idiom, device target, logging, app
-  args, verbose). See commit `849c6b2`.
+- **`newton.json` is the source of truth** for platform, scheme, project/workspace, configuration,
+  appName, and preferred simulator. CLI flags only cover runtime concerns (idiom, device target,
+  logging, app args, verbose). See commit `849c6b2`.
 - **DerivedData** always lives at `.newton/DerivedData`
   ([defaultDerivedDataPath](src/ios/project.ts#L77)). There is no override flag.
 - **Build logs** are written to `.newton/logs/<timestamp>.log` by

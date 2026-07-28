@@ -29,8 +29,10 @@ async function resolveBuildDestination(
   target: BuildOptions["target"],
 ): Promise<BuildOptions["destination"]> {
   if (target === "mac") return macDestination;
-  if (target === "device") return await resolveDevice(options.device);
+  const platform = options.platform === "watchos" ? "watchos" : "ios";
+  if (target === "device") return await resolveDevice(options.device, platform);
   return await resolveSimulator({
+    platform,
     sim: options.sim,
     idiom: options.idiom,
     appStore: options.appStore,

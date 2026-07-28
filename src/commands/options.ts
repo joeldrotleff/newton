@@ -7,6 +7,7 @@ import { ScreenshotDisplay } from "../ios/screenshot.ts";
 
 export interface InitCommandOptions {
   force?: boolean;
+  platform?: ApplePlatform;
 }
 
 export interface CreateCommandOptions {
@@ -114,6 +115,7 @@ export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions
 export async function resolveScreenshotOptions(opts: ScreenshotCliOptions) {
   const config = await loadConfig();
   return {
+    platform: config.platform === "watchos" ? "watchos" as const : "ios" as const,
     output: opts.output,
     display: opts.display ?? "none" as const,
     inlineWidth: opts.inlineWidth,

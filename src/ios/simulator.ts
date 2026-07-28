@@ -1,9 +1,12 @@
 import { fail } from "../util/errors.ts";
 import { runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
+import { DevicePlatform, platformDisplayName } from "./platform.ts";
 
 export type Idiom = "iphone" | "ipad";
+export type SimulatorProfile = Idiom | "watch";
 
 export interface SimulatorDevice {
+  platform: DevicePlatform;
   name: string;
   udid: string;
   state: string;
@@ -14,6 +17,7 @@ export interface SimulatorDevice {
 }
 
 export interface SimulatorSelectionOptions {
+  platform?: DevicePlatform;
   sim?: string;
   udid?: string;
   idiom?: Idiom;
@@ -38,7 +42,9 @@ const IPAD_SCREENSHOT_PATTERNS = [
   /iPad Pro 12\.9-inch/,
 ];
 
-export async function listSimulators(): Promise<SimulatorDevice[]> {
+export async function listSimulators(
+  platform: DevicePlatform = "ios",
+): Promise<SimulatorDevice[]> {
   const { stdout } = await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "list", // List simulator resources.
@@ -52,11 +58,13 @@ export async function listSimulators(): Promise<SimulatorDevice[]> {
   for (
     const [runtimeKey, runtimeDevices] of Object.entries(json.devices ?? {}) as [string, any[]][]
   ) {
-    if (!runtimeKey.includes("iOS")) continue;
-    const runtimeVersion = runtimeKey.replace(/^.*iOS[- ]/, "").replaceAll("-", ".");
+    const runtimePlatform = platformForRuntime(runtimeKey);
+    if (runtimePlatform !== platform) continue;
+    const runtimeVersion = versionForRuntime(runtimeKey);
     for (const device of runtimeDevices) {
       if (device.isAvailable === false) continue;
       devices.push({
+        platform: runtimePlatform,
         name: device.name,
         udid: device.udid,
         state: device.state,
@@ -76,6 +84,16 @@ export function parseVersion(version: string): number[] {
   return matches.map(Number);
 }
 
+export function platformForRuntime(runtime: string): DevicePlatform | undefined {
+  if (runtime.includes("watchOS")) return "watchos";
+  if (runtime.includes("iOS")) return "ios";
+  return undefined;
+}
+
+export function versionForRuntime(runtime: string): string {
+  return runtime.replace(/^.*(?:watchOS|iOS)[- ]/, "").replaceAll("-", ".");
+}
+
 export function isAppStoreCompatible(device: SimulatorDevice, idiom?: Idiom): boolean {
   if (idiom === "iphone" || (!idiom && device.name.startsWith("iPhone"))) {
     return IPHONE_SCREENSHOT_NAMES.some((name) => device.name.includes(name));
@@ -89,7 +107,8 @@ export function isAppStoreCompatible(device: SimulatorDevice, idiom?: Idiom): bo
 export async function resolveSimulator(
   options: SimulatorSelectionOptions = {},
 ): Promise<SimulatorDevice> {
-  return selectSimulator(await listSimulators(), options);
+  const platform = options.platform ?? "ios";
+  return selectSimulator(await listSimulators(platform), options);
 }
 
 // Pure selection logic: given the available devices and a selection request, pick one device.
@@ -99,15 +118,18 @@ export function selectSimulator(
   options: SimulatorSelectionOptions = {},
 ): SimulatorDevice {
   assertCompatibleSelection(options);
+  const platform = options.platform ?? "ios";
+  const platformName = platformDisplayName(platform);
+  devices = devices.filter((device) => device.platform === platform);
 
   if (options.udid) {
     const exact = devices.find((device) => device.udid === options.udid);
-    if (!exact) fail(`No available iOS simulator found with UDID ${options.udid}.`);
+    if (!exact) fail(`No available ${platformName} simulator found with UDID ${options.udid}.`);
     return exact;
   }
   if (options.sim) {
     const exact = devices.find((device) => device.name === options.sim);
-    if (!exact) fail(`No available iOS simulator named '${options.sim}'.`);
+    if (!exact) fail(`No available ${platformName} simulator named '${options.sim}'.`);
     return exact;
   }
 
@@ -121,20 +143,27 @@ export function selectSimulator(
     // Preferred simulator no longer exists (e.g. deleted) — fall through to ranking.
   }
 
-  const idiom = options.appStore ?? options.idiom ?? "iphone";
-  let candidates = devices.filter((device) => matchesIdiom(device, idiom));
+  const profile: SimulatorProfile = platform === "watchos"
+    ? "watch"
+    : options.appStore ?? options.idiom ?? "iphone";
+  let candidates = devices.filter((device) => matchesProfile(device, profile));
   if (options.appStore) {
     candidates = candidates.filter((device) => isAppStoreCompatible(device, options.appStore));
   }
-  if (candidates.length === 0) fail(`No available ${idiom} simulator found.`);
+  if (candidates.length === 0) {
+    fail(`No available ${profile === "watch" ? "Apple Watch" : profile} simulator found.`);
+  }
 
-  return candidates.toSorted(compareSimulatorPreference(idiom))[0];
+  return candidates.toSorted(compareSimulatorPreference(profile))[0];
 }
 
 // Rejects contradictory selection flags before we bother touching the device list.
 // --sim/--udid pin an exact device; --idiom/--app-store are filters — mixing the two,
 // or passing two pins / two conflicting idioms, is ambiguous and should fail loudly.
 export function assertCompatibleSelection(options: SimulatorSelectionOptions): void {
+  if (options.platform === "watchos" && (options.idiom || options.appStore)) {
+    fail("--idiom and --app-store only apply to iOS simulators.");
+  }
   if (options.udid && options.sim) {
     fail("Pass only one of --sim or --udid, not both.");
   }
@@ -149,16 +178,21 @@ export function assertCompatibleSelection(options: SimulatorSelectionOptions): v
 }
 
 export function matchesIdiom(device: SimulatorDevice, idiom: Idiom): boolean {
-  return idiom === "iphone" ? device.name.startsWith("iPhone") : device.name.startsWith("iPad");
+  return device.platform === "ios" &&
+    (idiom === "iphone" ? device.name.startsWith("iPhone") : device.name.startsWith("iPad"));
+}
+
+export function matchesProfile(device: SimulatorDevice, profile: SimulatorProfile): boolean {
+  return profile === "watch" ? device.platform === "watchos" : matchesIdiom(device, profile);
 }
 
 export function compareSimulatorPreference(
-  idiom: Idiom,
+  profile: SimulatorProfile,
 ): (a: SimulatorDevice, b: SimulatorDevice) => number {
   return (a, b) => {
     const runtime = compareVersionsDesc(a.versionParts, b.versionParts);
     if (runtime !== 0) return runtime;
-    return rankDevice(a.name, idiom) - rankDevice(b.name, idiom);
+    return rankDevice(a.name, profile) - rankDevice(b.name, profile);
   };
 }
 
@@ -172,8 +206,17 @@ function compareVersionsDesc(a: number[], b: number[]): number {
   return 0;
 }
 
-function rankDevice(name: string, idiom: Idiom): number {
-  if (idiom === "ipad") {
+function rankDevice(name: string, profile: SimulatorProfile): number {
+  if (profile === "watch") {
+    const series = Number(name.match(/Series (\d+)/)?.[1] ?? 0);
+    const size = Number(name.match(/\((\d+)mm\)/)?.[1] ?? 0);
+    if (series) return (100 - series) * 100 + (size ? 100 - size : 99);
+    if (name.includes("Ultra")) return 10_000;
+    if (name.includes("SE")) return 20_000;
+    return 30_000;
+  }
+
+  if (profile === "ipad") {
     if (/iPad Pro \(?13-inch/.test(name)) return 0;
     if (/iPad Pro \(?11-inch/.test(name)) return 1;
     if (name.includes("iPad Pro")) return 2;
@@ -216,7 +259,9 @@ export async function openSimulator(udid: string): Promise<void> {
   });
 }
 
-export async function listBootedSimulators(): Promise<SimulatorDevice[]> {
+export async function listBootedSimulators(
+  platform?: DevicePlatform,
+): Promise<SimulatorDevice[]> {
   const { stdout } = await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "list", // List simulator resources.
@@ -230,11 +275,13 @@ export async function listBootedSimulators(): Promise<SimulatorDevice[]> {
   for (
     const [runtimeKey, runtimeDevices] of Object.entries(json.devices ?? {}) as [string, any[]][]
   ) {
-    if (!runtimeKey.includes("iOS")) continue;
-    const runtimeVersion = runtimeKey.replace(/^.*iOS[- ]/, "").replaceAll("-", ".");
+    const runtimePlatform = platformForRuntime(runtimeKey);
+    if (!runtimePlatform || (platform && runtimePlatform !== platform)) continue;
+    const runtimeVersion = versionForRuntime(runtimeKey);
     for (const device of runtimeDevices) {
       if (device.state !== "Booted") continue;
       devices.push({
+        platform: runtimePlatform,
         name: device.name,
         udid: device.udid,
         state: device.state,
@@ -254,8 +301,10 @@ export async function bootedSimulatorUdid(): Promise<string> {
   return device.udid;
 }
 
-export async function resolveBootedSimulator(): Promise<SimulatorDevice> {
-  const devices = await listBootedSimulators();
+export async function resolveBootedSimulator(
+  platform?: DevicePlatform,
+): Promise<SimulatorDevice> {
+  const devices = await listBootedSimulators(platform);
   if (devices.length === 0) {
     fail("No booted simulator found. Run `newton run` or boot a simulator first.");
   }
@@ -336,8 +385,9 @@ export interface SimulatorDeleteResult {
 
 export async function deleteSimulatorsByRuntime(
   runtimeVersion: string,
+  platform: DevicePlatform = "ios",
 ): Promise<SimulatorDeleteResult> {
-  const devices = await listSimulators();
+  const devices = await listSimulators(platform);
   const toDelete = devices.filter((device) => device.runtimeVersion === runtimeVersion);
   const failed: SimulatorDeleteFailure[] = [];
   let deleted = 0;

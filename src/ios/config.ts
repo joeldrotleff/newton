@@ -7,12 +7,14 @@ import {
   discoverProject,
   XcodeContainer,
 } from "./project.ts";
+import { genericBuildDestination } from "./platform.ts";
+import type { ApplePlatform } from "./platform.ts";
 import { resolveSimulator } from "./simulator.ts";
 import { showBuildSettings } from "./xcodebuild.ts";
 
-export const CONFIG_FILE = "newton.json";
+export type { ApplePlatform } from "./platform.ts";
 
-export type ApplePlatform = "ios" | "macos";
+export const CONFIG_FILE = "newton.json";
 
 export interface NewtonConfig {
   platform?: ApplePlatform;
@@ -64,7 +66,9 @@ async function findParentConfig(cwd: string): Promise<string | null> {
   }
 }
 
-export async function writeInitialConfig(options: { force?: boolean } = {}): Promise<NewtonConfig> {
+export async function writeInitialConfig(
+  options: { force?: boolean; platform?: ApplePlatform } = {},
+): Promise<NewtonConfig> {
   if (await exists(CONFIG_FILE) && !options.force) {
     fail(`${CONFIG_FILE} already exists. Pass --force to overwrite.`);
   }
@@ -72,17 +76,25 @@ export async function writeInitialConfig(options: { force?: boolean } = {}): Pro
   const container = await discoverProject();
   const schemes = await listSchemes(container);
   const scheme = await chooseScheme(container, schemes);
-  const simulator = await resolveSimulator();
-  const appSettings = await resolveAppSettings({ container, scheme, simulator });
+  const platform = options.platform ?? "ios";
+  const simulator = platform === "macos" ? undefined : await resolveSimulator({ platform });
+  let appSettings: { configuration?: string; appName?: string };
+  if (platform === "macos") {
+    appSettings = await resolveSchemeSettings(scheme, platform);
+  } else {
+    if (!simulator) fail(`No ${platform} simulator found.`);
+    appSettings = await resolveAppSettings({ container, scheme, simulator, platform });
+  }
 
   const config: NewtonConfig = {
+    platform,
     scheme,
     ...(container.kind === "workspace"
       ? { workspace: relative(Deno.cwd(), container.path) }
       : { project: relative(Deno.cwd(), container.path) }),
     configuration: appSettings.configuration,
     appName: appSettings.appName,
-    preferredSimulator: simulator.name,
+    ...(simulator ? { preferredSimulator: simulator.name } : {}),
   };
 
   await writeConfig(config);
@@ -127,7 +139,7 @@ export async function resolveSchemeSettings(
     "-scheme", // Inspect settings for the named scheme.
     scheme,
     "-destination", // Generic destination — configuration/product don't vary by device.
-    platform === "macos" ? "generic/platform=macOS" : "generic/platform=iOS Simulator",
+    genericBuildDestination(platform),
     "-derivedDataPath", // Keep this query out of the default DerivedData location.
     defaultDerivedDataPath(),
     "-showBuildSettings",
@@ -145,12 +157,14 @@ async function resolveAppSettings(options: {
   container: XcodeContainer;
   scheme: string;
   simulator: Awaited<ReturnType<typeof resolveSimulator>>;
+  platform: Exclude<ApplePlatform, "macos">;
 }): Promise<{ configuration: string; appName: string }> {
   const settings = await showBuildSettings({
     container: options.container,
     scheme: options.scheme,
     destination: options.simulator,
     target: "sim",
+    platform: options.platform,
   });
   const appTarget = settings.find((target) => target.buildSettings?.WRAPPER_NAME?.endsWith(".app"));
   const buildSettings = appTarget?.buildSettings;

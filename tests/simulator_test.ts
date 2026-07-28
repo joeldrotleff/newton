@@ -8,12 +8,20 @@ import {
   SimulatorDevice,
 } from "../src/ios/simulator.ts";
 
-function device(name: string, runtimeVersion = "18.0"): SimulatorDevice {
+function device(
+  name: string,
+  runtimeVersion = "18.0",
+  platform: "ios" | "watchos" = "ios",
+): SimulatorDevice {
+  const runtimeName = platform === "watchos" ? "watchOS" : "iOS";
   return {
+    platform,
     name,
     udid: name,
     state: "Shutdown",
-    runtime: `com.apple.CoreSimulator.SimRuntime.iOS-${runtimeVersion.replaceAll(".", "-")}`,
+    runtime: `com.apple.CoreSimulator.SimRuntime.${runtimeName}-${
+      runtimeVersion.replaceAll(".", "-")
+    }`,
     runtimeVersion,
     versionParts: parseVersion(runtimeVersion),
     isAvailable: true,
@@ -62,9 +70,30 @@ Deno.test("selectSimulator falls back to ranking when preferred no longer exists
   assertEquals(chosen.name, "iPhone 16");
 });
 
+Deno.test("selectSimulator chooses a watchOS simulator from a mixed fleet", () => {
+  const watchFleet = [
+    ...fleet,
+    device("Apple Watch Ultra 3 (49mm)", "26.5", "watchos"),
+    device("Apple Watch Series 11 (46mm)", "26.5", "watchos"),
+    device("Apple Watch Series 11 (42mm)", "26.5", "watchos"),
+  ];
+
+  const chosen = selectSimulator(watchFleet, { platform: "watchos" });
+
+  assertEquals(chosen.name, "Apple Watch Series 11 (46mm)");
+});
+
 Deno.test("selectSimulator pins exactly by udid and sim", () => {
   assertEquals(selectSimulator(fleet, { udid: "iPad mini (A17 Pro)" }).name, "iPad mini (A17 Pro)");
   assertEquals(selectSimulator(fleet, { sim: "iPhone 16" }).name, "iPhone 16");
+});
+
+Deno.test("assertCompatibleSelection rejects iOS-only filters for watchOS", () => {
+  assertThrows(
+    () => assertCompatibleSelection({ platform: "watchos", idiom: "iphone" }),
+    Error,
+    "only apply to iOS simulators",
+  );
 });
 
 Deno.test("assertCompatibleSelection rejects --sim combined with --udid", () => {

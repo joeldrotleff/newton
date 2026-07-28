@@ -13,7 +13,9 @@ export async function previewCommand(name: string, opts: PreviewCliOptions): Pro
   const runOpts = await resolveRunOptions(opts);
   const display = opts.display ?? "inline";
   const delay = opts.delay ?? 2;
+  const platform = runOpts.platform === "watchos" ? "watchos" : "ios";
   const simulator = await resolveSimulator({
+    platform,
     sim: runOpts.sim,
     idiom: runOpts.idiom,
     appStore: runOpts.appStore,
@@ -39,6 +41,7 @@ export async function previewCommand(name: string, opts: PreviewCliOptions): Pro
     output: opts.output,
     display,
     inlineWidth: opts.inlineWidth,
+    platform,
     udid: simulator.udid,
   });
   console.log(`Saved preview screenshot: ${path}`);

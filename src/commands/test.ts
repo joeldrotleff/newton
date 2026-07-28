@@ -13,9 +13,11 @@ export async function testCommand(opts: TestCliOptions): Promise<void> {
 
   const target = options.target ?? "sim";
   const container = await discoverProject();
+  const platform = options.platform === "watchos" ? "watchos" : "ios";
   const destination = target === "device"
-    ? await resolveDevice(options.device)
+    ? await resolveDevice(options.device, platform)
     : await resolveSimulator({
+      platform,
       sim: options.sim,
       idiom: options.idiom,
       appStore: options.appStore,

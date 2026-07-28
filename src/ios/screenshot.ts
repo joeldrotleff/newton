@@ -1,6 +1,7 @@
 import { fail } from "../util/errors.ts";
 import { dirname, ensureDir, join, resolve, timestamp } from "../util/paths.ts";
 import { executableExists, runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
+import { DevicePlatform } from "./platform.ts";
 import { bootSimulator, resolveSimulator } from "./simulator.ts";
 
 export type ScreenshotDisplay = "inline" | "open" | "none";
@@ -8,6 +9,7 @@ export type ScreenshotDisplay = "inline" | "open" | "none";
 const DEFAULT_INLINE_WIDTH = 18;
 
 export interface ScreenshotOptions {
+  platform?: DevicePlatform;
   output?: string;
   display?: ScreenshotDisplay;
   inlineWidth?: number;
@@ -23,6 +25,7 @@ export async function captureScreenshot(options: ScreenshotOptions = {}): Promis
   await ensureDir(dirname(output));
 
   const simulator = await resolveSimulator({
+    platform: options.platform,
     sim: options.sim,
     udid: options.udid,
     idiom: options.idiom,

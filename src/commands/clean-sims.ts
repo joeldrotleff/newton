@@ -1,13 +1,16 @@
+import { loadConfig } from "../ios/config.ts";
 import { deleteSimulatorsByRuntime, deleteUnavailableSimulators } from "../ios/simulator.ts";
 import { CleanSimsCliOptions } from "./options.ts";
 
-// Deletes iOS simulators: either unavailable (orphaned) or by specific runtime version.
+// Deletes unavailable simulators, or those matching a platform and runtime version.
 export async function cleanSimsCommand(opts: CleanSimsCliOptions): Promise<void> {
   const runtime = opts.runtime;
+  const config = await loadConfig();
+  const platform = config.platform === "watchos" ? "watchos" : "ios";
 
   if (runtime) {
     console.log(`Deleting simulators with runtime ${runtime}...`);
-    const result = await deleteSimulatorsByRuntime(runtime);
+    const result = await deleteSimulatorsByRuntime(runtime, platform);
 
     if (result.deleted === 0 && result.failed.length === 0) {
       console.log(`✓ No simulators found with runtime ${runtime}.`);

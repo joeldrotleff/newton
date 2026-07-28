@@ -60,6 +60,38 @@ async function readGeneratedTextFiles(root: string): Promise<Map<string, string>
   return files;
 }
 
+Deno.test("createProject writes a native watchOS project", async () => {
+  const tempDir = await Deno.makeTempDir();
+  try {
+    const config = await createProject({
+      name: "Wrist Notes",
+      platform: "watchos",
+      output: tempDir,
+      bundleId: "com.example.wristnotes",
+    });
+
+    assertEquals(config.platform, "watchos");
+    assertEquals(config.scheme, "WristNotes");
+    assertEquals(config.project, "watchos/WristNotes.xcodeproj");
+    assertEquals(config.appName, "WristNotes");
+
+    const project = await Deno.readTextFile(
+      `${tempDir}/watchos/WristNotes.xcodeproj/project.pbxproj`,
+    );
+    assertStringIncludes(project, "SDKROOT = watchos;");
+    assertStringIncludes(project, 'SUPPORTED_PLATFORMS = "watchos watchsimulator";');
+    assertStringIncludes(project, "TARGETED_DEVICE_FAMILY = 4;");
+    assertStringIncludes(project, "PRODUCT_BUNDLE_IDENTIFIER = com.example.wristnotes;");
+
+    const app = await Deno.readTextFile(
+      `${tempDir}/watchos/WristNotes/WristNotesApp.swift`,
+    );
+    assertStringIncludes(app, "struct WristNotesApp: App");
+  } finally {
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
 Deno.test("createProject writes a native macOS project", async () => {
   const tempDir = await Deno.makeTempDir();
   try {

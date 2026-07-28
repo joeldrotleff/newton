@@ -34,6 +34,38 @@ Deno.test("locateBuiltApp calculates device app path from config", async () => {
   );
 });
 
+Deno.test("locateBuiltApp calculates watchOS simulator app path", async () => {
+  await using fixture = await appFixture();
+  const appPath = `${fixture.derivedData}/Build/Products/Debug-watchsimulator/Bartable.app`;
+  await createApp(appPath);
+
+  assertEquals(
+    await locateBuiltApp(buildOptions(fixture, {
+      configuration: "Debug",
+      appName: "Bartable",
+      platform: "watchos",
+      target: "sim",
+    })),
+    appPath,
+  );
+});
+
+Deno.test("locateBuiltApp calculates watchOS device app path", async () => {
+  await using fixture = await appFixture();
+  const appPath = `${fixture.derivedData}/Build/Products/Debug-watchos/Bartable.app`;
+  await createApp(appPath);
+
+  assertEquals(
+    await locateBuiltApp(buildOptions(fixture, {
+      configuration: "Debug",
+      appName: "Bartable",
+      platform: "watchos",
+      target: "device",
+    })),
+    appPath,
+  );
+});
+
 Deno.test("locateBuiltApp calculates macOS app path from config", async () => {
   await using fixture = await appFixture();
   const appPath = `${fixture.derivedData}/Build/Products/Debug/Meh.app`;
@@ -88,7 +120,7 @@ async function createApp(path: string) {
 
 function buildOptions(
   fixture: AppFixture,
-  options: Pick<BuildOptions, "configuration" | "appName" | "target">,
+  options: Pick<BuildOptions, "configuration" | "appName" | "platform" | "target">,
 ): BuildOptions {
   const target = options.target ?? "sim";
   return {
@@ -96,15 +128,17 @@ function buildOptions(
     scheme: "Silo Staging",
     configuration: options.configuration,
     appName: options.appName,
+    platform: options.platform,
     destination: target === "mac"
       ? { name: "My Mac" }
       : target === "device"
       ? { name: "iPhone", identifier: "DEVICE-UDID" }
       : {
-        name: "iPhone 17",
+        platform: options.platform === "watchos" ? "watchos" : "ios",
+        name: options.platform === "watchos" ? "Apple Watch Series 11" : "iPhone 17",
         udid: "SIM-UDID",
         state: "Booted",
-        runtime: "iOS 18.0",
+        runtime: options.platform === "watchos" ? "watchOS 26.5" : "iOS 18.0",
         runtimeVersion: "18.0",
         versionParts: [18, 0],
         isAvailable: true,

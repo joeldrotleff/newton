@@ -3,14 +3,20 @@ import { InitCommandOptions } from "./options.ts";
 
 // Creates newton.json from the current Xcode project/workspace and simulator defaults.
 export async function initCommand(opts: InitCommandOptions): Promise<void> {
-  const config = await writeInitialConfig({ force: opts.force ?? false });
+  const config = await writeInitialConfig({
+    force: opts.force ?? false,
+    platform: opts.platform,
+  });
   console.log("Created newton.json");
+  console.log(`  platform: ${config.platform}`);
   console.log(`  scheme: ${config.scheme}`);
   console.log(
     `  ${config.project ? "project" : "workspace"}: ${config.project ?? config.workspace}`,
   );
   console.log(`  configuration: ${config.configuration}`);
   console.log(`  appName: ${config.appName}`);
-  console.log(`  preferredSimulator: ${config.preferredSimulator}`);
+  if (config.preferredSimulator) {
+    console.log(`  preferredSimulator: ${config.preferredSimulator}`);
+  }
   console.log("Added .newton/ to .gitignore.");
 }

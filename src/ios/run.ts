@@ -7,10 +7,11 @@ import { installDeviceApp, launchDeviceApp, resolveDevice } from "./device.ts";
 import { discoverProject } from "./project.ts";
 import { bootSimulator, launchSimulatorApp, openSimulator, resolveSimulator } from "./simulator.ts";
 import { removeSession, writeSession } from "./session.ts";
+import { ApplePlatform, platformDisplayName } from "./platform.ts";
 import { build, macDestination } from "./xcodebuild.ts";
 
 export interface RunOptions {
-  platform?: "ios" | "macos";
+  platform?: ApplePlatform;
   scheme?: string;
   project?: string;
   workspace?: string;
@@ -43,8 +44,10 @@ export async function runApp(options: RunOptions): Promise<void> {
     return;
   }
 
+  const platform = options.platform === "watchos" ? "watchos" : "ios";
+
   if (target === "device") {
-    const device = await resolveDevice(options.device);
+    const device = await resolveDevice(options.device, platform);
     // Announce the target before the (slow) build so the user can confirm it's the right device.
     console.log(`▸ Device: ${device.name}`);
     await build({
@@ -68,6 +71,7 @@ export async function runApp(options: RunOptions): Promise<void> {
   }
 
   const simulator = await resolveSimulator({
+    platform,
     sim: options.sim,
     udid: options.udid,
     idiom: options.idiom,
@@ -75,7 +79,9 @@ export async function runApp(options: RunOptions): Promise<void> {
     preferred: options.preferred,
   });
   // Announce the target before the (slow) build so the user can confirm it's the right device.
-  console.log(`▸ Simulator: ${simulator.name} (iOS ${simulator.runtimeVersion})`);
+  console.log(
+    `▸ Simulator: ${simulator.name} (${platformDisplayName(platform)} ${simulator.runtimeVersion})`,
+  );
   await bootSimulator(simulator.udid);
   if (options.revealSimulator ?? true) {
     await openSimulator(simulator.udid);

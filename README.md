@@ -1,13 +1,13 @@
 # Newton
 
-Newton is a standalone CLI for iOS and macOS app scaffolding, build, run, test, screenshot, preview,
-and SourceKit-LSP workflows.
+Newton is a standalone CLI for iOS, watchOS, and macOS app scaffolding, build, run, test,
+screenshot, preview, and SourceKit-LSP workflows.
 
 It is built for fast terminal-driven Apple platform development: scaffold native SwiftUI projects,
-build with `xcodebuild`, launch apps, stream logs when useful, and capture iOS simulator screenshots
-without opening Xcode.
+build with `xcodebuild`, launch apps, stream logs when useful, and capture iOS or watchOS simulator
+screenshots without opening Xcode.
 
-Simulator, connected-device, screenshot, and preview commands are iOS-specific. Native macOS
+Simulator, connected-device, screenshot, and preview commands support iOS and watchOS. Native macOS
 projects support create, build, run, Xcode, build-log, and LSP workflows.
 
 ## Status
@@ -81,6 +81,15 @@ newton run --detach
 newton screenshot --display open
 ```
 
+Create and run a watchOS project:
+
+```sh
+newton create "Wrist Notes" --platform watchos
+newton build
+newton run --detach
+newton screenshot --display open
+```
+
 Create and run a native macOS project:
 
 ```sh
@@ -114,24 +123,27 @@ fields are optional; `newton init` writes them based on the current Xcode projec
 
 ```sh
 newton create "My App"
+newton create "Wrist Notes" --platform watchos
 newton create "Menu Helper" --platform macos
 newton create "My App" --output ~/code/my-app --bundle-id com.example.myapp
 newton create "My App" --team-id 4DQ648JWVG
 newton create "My App" --no-team
 newton init
+newton init --platform watchos
 newton init --force
 ```
 
 `newton create` creates a starter SwiftUI app, writes `newton.json`, and adds `.newton/` to
-`.gitignore`. It creates an iOS app under `ios/` by default; pass `--platform macos` for a native
-macOS app under `macos/`. By default, the module name is derived by removing characters that are
-unsafe for Swift identifiers. During creation, Newton lists Apple Development signing teams detected
-from local certificates and prompts for the team to write as `DEVELOPMENT_TEAM`; pass `--team-id` or
-`--no-team` to skip the prompt.
+`.gitignore`. It creates an iOS app under `ios/` by default; pass `--platform watchos` for a
+watch-only app under `watchos/`, or `--platform macos` for a native Mac app under `macos/`. By
+default, the module name is derived by removing characters that are unsafe for Swift identifiers.
+During creation, Newton lists Apple Development signing teams detected from local certificates and
+prompts for the team to write as `DEVELOPMENT_TEAM`; pass `--team-id` or `--no-team` to skip the
+prompt.
 
-`newton init` creates or overwrites local `newton.json` using discovered Xcode project/workspace, a
-likely default scheme, and Newton's preferred installed iPhone simulator. Also adds `.newton/` to
-`.gitignore`.
+`newton init` creates or overwrites local `newton.json` using the discovered Xcode
+project/workspace, a likely default scheme, and Newton's preferred installed simulator. Pass
+`--platform watchos` for an existing Watch app. It also adds `.newton/` to `.gitignore`.
 
 ### Simulators
 
@@ -142,8 +154,8 @@ newton sims --app-store iphone
 newton sims --app-store ipad
 ```
 
-Lists available iOS simulators, marks Newton's default selection, and marks App Store
-screenshot-compatible devices.
+Lists available simulators for the platform in `newton.json` and marks Newton's default selection.
+For iOS, it also marks App Store screenshot-compatible devices.
 
 ### Clean simulators
 
@@ -153,13 +165,12 @@ newton clean-sims --runtime 18.0
 newton clean-sims --runtime 26.1
 ```
 
-Deletes iOS simulators. Without `--runtime`, deletes all unavailable (orphaned) simulators — these
-become unavailable when their iOS runtime is no longer installed, typically after upgrading Xcode.
+Deletes simulators. Without `--runtime`, deletes all unavailable (orphaned) simulators — these
+become unavailable when their runtime is no longer installed, typically after upgrading Xcode.
 
-With `--runtime`, deletes all simulators for the specified iOS version. Useful for freeing disk
-space when migrating to a new OS version. Run this as your normal user, not with `sudo`; if
-CoreSimulator reports permission errors, fix ownership of `~/Library/Developer/CoreSimulator` and
-retry.
+With `--runtime`, deletes all simulators for the specified version and configured platform. Run this
+as your normal user, not with `sudo`; if CoreSimulator reports permission errors, fix ownership of
+`~/Library/Developer/CoreSimulator` and retry.
 
 ### Devices (connected)
 
@@ -167,7 +178,7 @@ retry.
 newton devices
 ```
 
-Lists connected (physical) iPhone/iPad devices detected by `xcrun devicectl`.
+Lists connected physical iPhone, iPad, and Apple Watch devices detected by `xcrun devicectl`.
 
 ### Signing teams
 
@@ -207,9 +218,9 @@ newton build --verbose
 ```
 
 Builds the configured scheme with `xcodebuild`. Platform, scheme, project/workspace, and
-configuration come from `newton.json`. macOS projects build for the local Mac. For iOS projects, use
-`--idiom` or `--app-store` to pick a simulator other than the default, or `--device` to target a
-connected device.
+configuration come from `newton.json`. macOS projects build for the local Mac. iOS and watchOS
+projects build for their preferred simulator by default; use `--device` to target a connected
+device. The `--idiom` and `--app-store` filters apply only to iOS.
 
 ### Test
 
@@ -245,8 +256,8 @@ newton run --device --detach
 newton run --device "Joel's iPhone"
 ```
 
-Builds and launches the app on its configured platform. iOS apps are installed on a simulator or
-connected device; macOS apps launch directly on the local Mac.
+Builds and launches the app on its configured platform. iOS and watchOS apps are installed on a
+simulator or connected device; macOS apps launch directly on the local Mac.
 
 By default, `run` attaches to the app console. Use `--detach` to launch and exit without streaming
 logs.
@@ -278,7 +289,8 @@ newton screenshot --display none
 
 Captures the selected simulator screen using `xcrun simctl io screenshot`. Inline terminal display
 uses a small preview by default; pass `--inline-width` to resize it. By default, Newton uses the
-`preferredSimulator` from `newton.json`, or its normal default simulator selection.
+`preferredSimulator` from `newton.json`, or the normal default selection for the configured
+platform.
 
 ### SwiftUI preview host workflow
 
@@ -394,16 +406,17 @@ Recursive discovery ignores common generated directories such as `.git`, `.build
 
 Default simulator selection is deterministic:
 
-1. filter to available iOS simulators
-2. filter by idiom (`iphone` by default, or `ipad`)
-3. prefer newest iOS runtime
-4. prefer standard current devices before oversized devices
-5. prefer newer hardware generation
+1. filter to the configured platform and available devices
+2. filter iOS devices by idiom (`iphone` by default, or `ipad`)
+3. prefer the newest runtime
+4. prefer current standard models and larger standard case sizes
+5. prefer newer hardware generations
 
-Set `preferredSimulator` in `newton.json` to pin a default. Use `--idiom ipad` to switch idiom, or
-`--app-store iphone|ipad` to choose a simulator whose screenshot resolution matches App Store
-Connect requirements. The `screenshot` command additionally accepts `--sim "Exact Name"`/`--udid` to
-override the default for a single capture.
+Set `preferredSimulator` in `newton.json` to pin a default. For iOS, use `--idiom ipad` to switch
+idiom, or `--app-store iphone|ipad` to choose a simulator whose screenshot resolution matches App
+Store Connect requirements. watchOS projects select from installed Apple Watch simulators. The
+`screenshot` command additionally accepts `--sim "Exact Name"`/`--udid` to override the default for
+a single capture.
 
 ## Development
 

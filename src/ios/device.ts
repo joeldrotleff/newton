@@ -1,8 +1,9 @@
 import { fail } from "../util/errors.ts";
 import { join } from "../util/paths.ts";
 import { runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
+import { DevicePlatform, platformDisplayName } from "./platform.ts";
 
-export interface IOSDevice {
+export interface AppleDevice {
   name: string;
   identifier: string;
   hardwareUdid?: string;
@@ -10,7 +11,7 @@ export interface IOSDevice {
   connectionState?: string;
 }
 
-export async function listDevices(): Promise<IOSDevice[]> {
+export async function listDevices(): Promise<AppleDevice[]> {
   const jsonPath = join(await Deno.makeTempDir(), "devices.json");
   await runCliCommand("xcrun", [
     "devicectl", // Run Xcode's device management tool through xcrun.
@@ -27,7 +28,8 @@ export async function listDevices(): Promise<IOSDevice[]> {
       const deviceType = device.hardwareProperties?.deviceType;
       const platform = device.hardwareProperties?.platform ?? device.deviceProperties?.platform ??
         device.platform;
-      return platform === "iOS" || deviceType === "iPhone" || deviceType === "iPad";
+      return platform === "iOS" || platform === "watchOS" || deviceType === "iPhone" ||
+        deviceType === "iPad" || deviceType === "appleWatch";
     })
     .map((device: any) => ({
       name: device.deviceProperties?.name ?? device.name ?? "Unknown Device",
@@ -37,23 +39,27 @@ export async function listDevices(): Promise<IOSDevice[]> {
         device.platform,
       connectionState: device.connectionProperties?.transportType ?? device.connectionState,
     }))
-    .filter((device: IOSDevice) => device.identifier);
+    .filter((device: AppleDevice) => device.identifier);
 }
 
-export async function resolveDevice(nameOrId?: string): Promise<IOSDevice> {
+export async function resolveDevice(
+  nameOrId?: string,
+  platform: DevicePlatform = "ios",
+): Promise<AppleDevice> {
   const devices = await listDevices();
-  const candidates = devices.filter((device) =>
-    !device.platform || String(device.platform).includes("iOS")
-  );
+  const platformName = platformDisplayName(platform);
+  const candidates = devices.filter((device) => String(device.platform) === platformName);
   if (nameOrId) {
     const exact = candidates.find((device) =>
       device.name === nameOrId || device.identifier === nameOrId || device.hardwareUdid === nameOrId
     );
-    if (!exact) fail(`No connected iOS device matched '${nameOrId}'.`);
+    if (!exact) fail(`No connected ${platformName} device matched '${nameOrId}'.`);
     return exact;
   }
   if (candidates.length === 0) {
-    fail("No connected iOS device found. Connect/unlock a device, trust this Mac, then retry.");
+    fail(
+      `No connected ${platformName} device found. Connect/unlock a device, trust this Mac, then retry.`,
+    );
   }
   if (candidates.length > 1) {
     return await promptDeviceSelection(candidates);
@@ -61,8 +67,8 @@ export async function resolveDevice(nameOrId?: string): Promise<IOSDevice> {
   return candidates[0];
 }
 
-async function promptDeviceSelection(candidates: IOSDevice[]): Promise<IOSDevice> {
-  console.log("Multiple iOS devices found:");
+async function promptDeviceSelection(candidates: AppleDevice[]): Promise<AppleDevice> {
+  console.log(`Multiple ${candidates[0]?.platform ?? "Apple"} devices found:`);
   candidates.forEach((device, index) => {
     const transport = device.connectionState ? ` [${device.connectionState}]` : "";
     console.log(`  ${index + 1}) ${device.name}${transport}`);
@@ -87,7 +93,7 @@ async function readLine(message: string): Promise<string | null> {
   return new TextDecoder().decode(buffer.subarray(0, bytesRead)).split(/\r?\n/, 1)[0];
 }
 
-export async function installDeviceApp(device: IOSDevice, appPath: string): Promise<void> {
+export async function installDeviceApp(device: AppleDevice, appPath: string): Promise<void> {
   await runCliCommand("xcrun", [
     "devicectl", // Run Xcode's device management tool through xcrun.
     "device", // Use the device subcommands.
@@ -100,7 +106,7 @@ export async function installDeviceApp(device: IOSDevice, appPath: string): Prom
 }
 
 export async function launchDeviceApp(
-  device: IOSDevice,
+  device: AppleDevice,
   bundleId: string,
   appArgs: string[],
   logs: boolean,

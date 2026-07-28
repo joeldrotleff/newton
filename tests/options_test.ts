@@ -42,6 +42,26 @@ Deno.test("resolveRunOptions selects the Mac destination from config", async () 
   }
 });
 
+Deno.test("resolveRunOptions preserves watchOS platform and simulator target", async () => {
+  const cwd = Deno.cwd();
+  const tempDir = await Deno.makeTempDir();
+  try {
+    Deno.chdir(tempDir);
+    await Deno.writeTextFile(
+      CONFIG_FILE,
+      JSON.stringify({ platform: "watchos", scheme: "Bartable", appName: "Bartable" }),
+    );
+
+    const options = await resolveRunOptions({});
+
+    assertEquals(options.platform, "watchos");
+    assertEquals(options.target, "sim");
+  } finally {
+    Deno.chdir(cwd);
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
 Deno.test("resolveRunOptions defaults logs on without --detach", async () => {
   const cwd = Deno.cwd();
   const tempDir = await Deno.makeTempDir();

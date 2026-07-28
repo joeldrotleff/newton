@@ -24,7 +24,7 @@ const VERSION = "0.1.0";
 
 // Constrained enum types — cliffy validates the value and feeds them to shell completions.
 const idiomType = new EnumType(["iphone", "ipad"]);
-const platformType = new EnumType(["ios", "macos"]);
+const platformType = new EnumType(["ios", "watchos", "macos"]);
 const displayType = new EnumType(["inline", "open", "none"]);
 
 // Subcommand option groups are inlined per-command rather than shared via helpers,
@@ -36,7 +36,7 @@ export function buildCli() {
     .name("newton")
     .version(VERSION)
     .description(
-      "Apple platform toolkit: scaffold, build, and run iOS and macOS Xcode projects.",
+      "Apple platform toolkit: scaffold, build, and run iOS, watchOS, and macOS Xcode projects.",
     )
     .meta("Docs", "https://github.com/joeldrotleff/newton")
     .action(function () {
@@ -48,10 +48,13 @@ export function buildCli() {
     .command(
       "init",
       new Command()
+        .type("platform", platformType)
         .description("Create newton.json from the current Xcode project & simulator defaults.")
         .option("-f, --force", "Overwrite an existing newton.json")
+        .option("--platform <platform:platform>", "Project platform", { default: "ios" })
         .example("Basic", "newton init")
         .example("Overwrite", "newton init --force")
+        .example("watchOS project", "newton init --platform watchos")
         .action((options) => initCommand(options)),
     )
     //
@@ -61,9 +64,11 @@ export function buildCli() {
       "create",
       new Command()
         .type("platform", platformType)
-        .description("Scaffold a new SwiftUI iOS or macOS project and write its Newton config.")
+        .description(
+          "Scaffold a new SwiftUI iOS, watchOS, or macOS project and write its Newton config.",
+        )
         .arguments("<name:string>")
-        .option("--platform <platform:platform>", "Target platform (ios or macos)", {
+        .option("--platform <platform:platform>", "Target platform (ios, watchos, or macos)", {
           default: "ios",
         })
         .option("--output <path:file>", "Directory in which to create the project")
@@ -71,6 +76,7 @@ export function buildCli() {
         .option("--team-id <id:string>", "Apple Development team ID for code signing")
         .option("--no-team", "Skip development-team selection")
         .example("iOS quickstart", "newton create MyApp")
+        .example("watchOS quickstart", "newton create MyApp --platform watchos")
         .example("macOS quickstart", "newton create MyApp --platform macos")
         .example("Custom bundle id", "newton create MyApp --bundle-id com.acme.MyApp")
         .example("No signing", "newton create MyApp --no-team")
@@ -83,7 +89,9 @@ export function buildCli() {
       "sims",
       new Command()
         .type("idiom", idiomType)
-        .description("List installed iOS simulators and mark Newton's default choice.")
+        .description(
+          "List installed simulators for the configured platform and mark Newton's default choice.",
+        )
         .option("--idiom <idiom:idiom>", "Filter to iphone or ipad simulators")
         .option(
           "--app-store <idiom:idiom>",
@@ -114,7 +122,9 @@ export function buildCli() {
     .command(
       "devices",
       new Command()
-        .description("List connected physical iPhone & iPad devices visible to Xcode.")
+        .description(
+          "List connected physical iPhone, iPad, and Apple Watch devices visible to Xcode.",
+        )
         .action(() => devicesCommand()),
     )
     //

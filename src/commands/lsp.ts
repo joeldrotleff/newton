@@ -1,5 +1,6 @@
 import { loadConfig, missingRequiredConfigFieldMessage } from "../ios/config.ts";
 import { containerArgs, defaultDerivedDataPath, discoverProject } from "../ios/project.ts";
+import { genericBuildDestination } from "../ios/platform.ts";
 import { fail } from "../util/errors.ts";
 import { join, resolve } from "../util/paths.ts";
 import { executableExists, runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
@@ -47,7 +48,7 @@ export async function lspCommand(): Promise<void> {
     "-scheme",
     config.scheme,
     "-destination",
-    "generic/platform=iOS Simulator",
+    genericBuildDestination(config.platform ?? "ios"),
     "-derivedDataPath",
     derivedData,
     "-resultBundlePath",

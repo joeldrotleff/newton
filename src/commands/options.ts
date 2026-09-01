@@ -27,7 +27,6 @@ export interface RunCliOptions {
   detach?: boolean;
   logLevel?: string;
   logFilter?: string;
-  appArg?: string[];
   define?: string[];
   verbose?: boolean;
 }
@@ -68,7 +67,10 @@ export interface CleanSimsCliOptions {
 }
 
 // Resolves run options from newton.json plus CLI-only flags (idiom, device, logging, etc.).
-export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions> {
+export async function resolveRunOptions(
+  opts: RunCliOptions,
+  appArgs: string[] = [],
+): Promise<RunOptions> {
   const config = await loadConfig();
   // --device (with or without a value) selects a connected device; otherwise use the simulator.
   const deviceName = typeof opts.device === "string" ? opts.device : undefined;
@@ -104,7 +106,7 @@ export async function resolveRunOptions(opts: RunCliOptions): Promise<RunOptions
     logs: !opts.detach,
     logLevel: opts.logLevel,
     logFilter: opts.logFilter,
-    appArgs: opts.appArg ?? [],
+    appArgs,
     // Each --define NAME expands to two argv tokens (`-D`, `NAME`) so they survive
     // xcodebuild's OTHER_SWIFT_FLAGS parsing intact for swiftc.
     swiftFlags: (opts.define ?? []).flatMap((name) => ["-D", name]),

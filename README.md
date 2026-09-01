@@ -269,10 +269,10 @@ Convenience logging flags are passed as app launch arguments:
 --log-filter chat   -> -LogFilter chat
 ```
 
-Raw app launch args can be repeated:
+Pass raw app launch arguments after `--`:
 
 ```sh
-newton run --app-arg -SomeFlag --app-arg value
+newton run -- -SomeFlag value
 ```
 
 ### Screenshots

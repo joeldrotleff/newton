@@ -5,12 +5,16 @@ import { fail } from "../util/errors.ts";
 import { PreviewCliOptions, resolveRunOptions } from "./options.ts";
 
 // Runs a named app-side preview and captures it as a screenshot.
-export async function previewCommand(name: string, opts: PreviewCliOptions): Promise<void> {
+export async function previewCommand(
+  name: string,
+  opts: PreviewCliOptions,
+  appArgs: string[] = [],
+): Promise<void> {
   if (opts.device) {
     fail("`newton preview` captures simulator screenshots; omit --device.");
   }
 
-  const runOpts = await resolveRunOptions(opts);
+  const runOpts = await resolveRunOptions(opts, appArgs);
   const display = opts.display ?? "inline";
   const delay = opts.delay ?? 2;
   const platform = runOpts.platform === "watchos" ? "watchos" : "ios";

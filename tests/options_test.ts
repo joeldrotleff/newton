@@ -153,17 +153,17 @@ Deno.test("resolveRunOptions expands --define values into -D NAME swift flag pai
   }
 });
 
-Deno.test("resolveRunOptions defaults to sim target and renames appArg to appArgs", async () => {
+Deno.test("resolveRunOptions forwards app arguments", async () => {
   const cwd = Deno.cwd();
   const tempDir = await Deno.makeTempDir();
   try {
     Deno.chdir(tempDir);
     await Deno.writeTextFile(CONFIG_FILE, JSON.stringify({}));
 
-    const options = await resolveRunOptions({ appArg: ["--seed", "42"] });
+    const options = await resolveRunOptions({}, ["-LocalTestMode", "YES"]);
 
     assertEquals(options.target, "sim");
-    assertEquals(options.appArgs, ["--seed", "42"]);
+    assertEquals(options.appArgs, ["-LocalTestMode", "YES"]);
   } finally {
     Deno.chdir(cwd);
     await Deno.remove(tempDir, { recursive: true });

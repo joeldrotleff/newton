@@ -42,7 +42,7 @@ Deno.test("preview subcommand declares simulator screenshot options", () => {
   if (!preview) throw new Error("preview command not found");
 
   const optionNames = preview.getOptions().map((o) => o.name);
-  for (const flag of ["display", "inline-width", "open-simulator", "delay", "app-arg"]) {
+  for (const flag of ["display", "inline-width", "open-simulator", "delay"]) {
     assertEquals(
       optionNames.includes(flag),
       true,
@@ -66,16 +66,14 @@ Deno.test("test subcommand declares build-like options", () => {
   }
 });
 
-Deno.test("run subcommand declares detach option", () => {
+Deno.test("run subcommand accepts trailing app arguments", () => {
   const run = buildCli().getCommand("run");
   if (!run) throw new Error("run command not found");
 
   const optionNames = run.getOptions().map((o) => o.name);
-  assertEquals(
-    optionNames.includes("detach"),
-    true,
-    `expected --detach on 'run', got: ${optionNames.join(", ")}`,
-  );
+  assertEquals(optionNames.includes("detach"), true);
+  assertEquals(optionNames.includes("app-arg"), false);
+  assertEquals(run.getArguments().map((argument) => argument.name), ["appArgs"]);
 });
 
 Deno.test("top-level help mentions newton", () => {

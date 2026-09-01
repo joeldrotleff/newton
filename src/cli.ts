@@ -229,6 +229,7 @@ export function buildCli() {
       new Command()
         .type("idiom", idiomType)
         .description("Build and launch the app on its configured Apple platform.")
+        .arguments("[appArgs...:string]")
         .option("--scheme <name:string>", "Override the scheme from newton.json")
         .option(
           "--configuration <name:string>",
@@ -243,7 +244,6 @@ export function buildCli() {
         .option("--detach", "Launch the app and exit without streaming logs")
         .option("--log-level <level:string>", "os_log level filter (e.g. debug, info)")
         .option("--log-filter <predicate:string>", "os_log NSPredicate filter")
-        .option("--app-arg <arg:string>", "Extra launch argument (repeatable)", { collect: true })
         .option(
           "-D, --define <name:string>",
           "Swift compile-time conditional (repeatable). Equivalent to swiftc -D <name>.",
@@ -253,9 +253,10 @@ export function buildCli() {
         .example("Run on default sim", "newton run")
         .example("Run detached", "newton run --detach")
         .example("Run on device", "newton run --device")
+        .example("Pass app arguments", "newton run -- -LocalTestMode YES")
         .example("Active compile flag", "newton run -D LOCALHOST_BACKEND")
         .example("Run an alternate scheme", "newton run --device --scheme QuestDev")
-        .action((options) => runCommand(options)),
+        .action((options, ...appArgs) => runCommand(options, appArgs)),
     )
     //
     // screenshot
@@ -293,7 +294,7 @@ export function buildCli() {
         .description(
           'Capture an app-registered SwiftUI preview by name as a simulator screenshot. Requires DEBUG app-side code: read UserDefaults(key: "NewtonPreview") and route to a view that renders the named preview. See the README for a full setup guide.',
         )
-        .arguments("<name:string>")
+        .arguments("<name:string> [appArgs...:string]")
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
         .option(
           "--app-store <idiom:idiom>",
@@ -311,7 +312,6 @@ export function buildCli() {
         .option("--delay <seconds:number>", "Seconds to wait after launch before capturing", {
           default: 2,
         })
-        .option("--app-arg <arg:string>", "Extra launch argument (repeatable)", { collect: true })
         .option("--verbose", "Print verbose xcodebuild output")
         .example("Capture named preview", 'newton preview "Basic Chat Screen"')
         .example("Resize inline image", 'newton preview "Basic Chat Screen" --inline-width 60')
@@ -320,7 +320,7 @@ export function buildCli() {
           "Save to disk without inline renderer",
           'newton preview "Basic Chat Screen" --output preview.png --display none',
         )
-        .action((options, name) => previewCommand(name, options)),
+        .action((options, name, ...appArgs) => previewCommand(name, options, appArgs)),
     )
     //
     // reload

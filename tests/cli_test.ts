@@ -76,6 +76,34 @@ Deno.test("run subcommand accepts trailing app arguments", () => {
   assertEquals(run.getArguments().map((argument) => argument.name), ["appArgs"]);
 });
 
+Deno.test("run subcommand forwards literal app arguments after the separator", async () => {
+  let received: string[] = [];
+  const cli = buildCli({
+    run: (_options, appArgs = []) => {
+      received = appArgs;
+      return Promise.resolve();
+    },
+  });
+
+  await cli.parse([
+    "run",
+    "--scheme",
+    "QuestDev",
+    "--",
+    "-LocalTestMode",
+    "YES",
+    "-LocalSandboxURL",
+    "https://example.test",
+  ]);
+
+  assertEquals(received, [
+    "-LocalTestMode",
+    "YES",
+    "-LocalSandboxURL",
+    "https://example.test",
+  ]);
+});
+
 Deno.test("top-level help mentions newton", () => {
   const help = buildCli().getHelp();
   assertStringIncludes(help, "newton");

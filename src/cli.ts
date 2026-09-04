@@ -27,11 +27,19 @@ const idiomType = new EnumType(["iphone", "ipad"]);
 const platformType = new EnumType(["ios", "watchos", "macos"]);
 const displayType = new EnumType(["inline", "open", "none"]);
 
+type CliDependencies = {
+  run: typeof runCommand;
+  preview: typeof previewCommand;
+};
+
 // Subcommand option groups are inlined per-command rather than shared via helpers,
 // because cliffy's deeply-generic Command type erases option types when threaded
 // through helper functions, which silently breaks `.action()` typing.
 
-export function buildCli() {
+export function buildCli(overrides: Partial<CliDependencies> = {}) {
+  const run = overrides.run ?? runCommand;
+  const preview = overrides.preview ?? previewCommand;
+
   return new Command()
     .name("newton")
     .version(VERSION)
@@ -256,7 +264,9 @@ export function buildCli() {
         .example("Pass app arguments", "newton run -- -LocalTestMode YES")
         .example("Active compile flag", "newton run -D LOCALHOST_BACKEND")
         .example("Run an alternate scheme", "newton run --device --scheme QuestDev")
-        .action((options, ...appArgs) => runCommand(options, appArgs)),
+        .action(function (options, ...appArgs) {
+          return run(options, [...appArgs, ...this.getLiteralArgs()]);
+        }),
     )
     //
     // screenshot
@@ -320,7 +330,9 @@ export function buildCli() {
           "Save to disk without inline renderer",
           'newton preview "Basic Chat Screen" --output preview.png --display none',
         )
-        .action((options, name, ...appArgs) => previewCommand(name, options, appArgs)),
+        .action(function (options, name, ...appArgs) {
+          return preview(name, options, [...appArgs, ...this.getLiteralArgs()]);
+        }),
     )
     //
     // reload

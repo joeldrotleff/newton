@@ -118,6 +118,7 @@ export async function launchDeviceApp(
     "launch", // Start the app process.
     "--device", // Target the device identified by the next argument.
     device.identifier,
+    "--terminate-existing", // Ensure app arguments reach a fresh process.
     ...(logs ? ["--console"] : []), // Stream process console output through this terminal.
     bundleId,
     ...(appArgs.length > 0 ? ["--", ...appArgs] : []), // Separate devicectl args from app args.

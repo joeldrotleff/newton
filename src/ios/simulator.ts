@@ -26,6 +26,25 @@ export interface SimulatorSelectionOptions {
   preferred?: string;
 }
 
+export interface SimulatorDeviceType {
+  name: string;
+  identifier: string;
+  productFamily: string;
+}
+
+export interface SimulatorRuntime {
+  name: string;
+  identifier: string;
+  version: string;
+  isAvailable: boolean;
+  supportedDeviceTypes: SimulatorDeviceType[];
+}
+
+export interface SimulatorCreationOptions {
+  deviceType?: string;
+  runtime?: string;
+}
+
 const IPHONE_SCREENSHOT_NAMES = [
   "iPhone 17 Pro Max",
   "iPhone 16 Pro Max",
@@ -45,11 +64,18 @@ const IPAD_SCREENSHOT_PATTERNS = [
 export async function listSimulators(
   platform: DevicePlatform = "ios",
 ): Promise<SimulatorDevice[]> {
+  return await listSimulatorDevices(platform, true);
+}
+
+async function listSimulatorDevices(
+  platform: DevicePlatform,
+  availableOnly: boolean,
+): Promise<SimulatorDevice[]> {
   const { stdout } = await runCliCommand("xcrun", [
     "simctl", // Run the Simulator control tool through xcrun.
     "list", // List simulator resources.
     "devices", // Limit the listing to simulator devices.
-    "available", // Exclude unavailable runtimes/devices.
+    ...(availableOnly ? ["available"] : []), // Include unavailable devices only for exact deletion.
     "--json", // Emit machine-readable device data.
   ]);
   const json = JSON.parse(stdout);
@@ -62,7 +88,7 @@ export async function listSimulators(
     if (runtimePlatform !== platform) continue;
     const runtimeVersion = versionForRuntime(runtimeKey);
     for (const device of runtimeDevices) {
-      if (device.isAvailable === false) continue;
+      if (availableOnly && device.isAvailable === false) continue;
       devices.push({
         platform: runtimePlatform,
         name: device.name,
@@ -77,6 +103,16 @@ export async function listSimulators(
   }
 
   return devices;
+}
+
+export async function listSimulatorRuntimes(): Promise<SimulatorRuntime[]> {
+  const { stdout } = await runCliCommand("xcrun", [
+    "simctl", // Run the Simulator control tool through xcrun.
+    "list", // List simulator resources.
+    "runtimes", // Limit the listing to installed simulator runtimes.
+    "--json", // Emit machine-readable device data.
+  ]);
+  return JSON.parse(stdout).runtimes ?? [];
 }
 
 export function parseVersion(version: string): number[] {
@@ -230,6 +266,123 @@ function rankDevice(name: string, profile: SimulatorProfile): number {
   if (/^iPhone \d+ Pro Max$/.test(name)) return generationRank * 10 + 2;
   if (/^iPhone \d+ Plus$/.test(name)) return generationRank * 10 + 3;
   return generationRank * 10 + 9;
+}
+
+export function selectSimulatorCreation(
+  runtimes: SimulatorRuntime[],
+  options: SimulatorCreationOptions = {},
+) {
+  const iosRuntimes = runtimes.filter((runtime) =>
+    runtime.isAvailable && runtime.identifier.includes(".iOS-")
+  );
+  const deviceTypes = [
+    ...new Map(
+      iosRuntimes.flatMap((runtime) => runtime.supportedDeviceTypes).map((item) => [
+        item.identifier,
+        item,
+      ]),
+    ).values(),
+  ];
+  const deviceType = resolveExact(
+    deviceTypes,
+    options.deviceType ?? "iPhone 17",
+    "device type",
+    (item) => [item.name, item.identifier],
+  );
+  const compatibleRuntimes = iosRuntimes.filter((runtime) =>
+    runtime.supportedDeviceTypes.some((item) => item.identifier === deviceType.identifier)
+  );
+  const runtime = options.runtime
+    ? resolveExact(
+      compatibleRuntimes,
+      options.runtime,
+      `iOS runtime compatible with ${deviceType.name}`,
+      (item) => [item.name, item.identifier, item.version],
+    )
+    : compatibleRuntimes.toSorted((a, b) =>
+      compareVersionsDesc(parseVersion(a.version), parseVersion(b.version))
+    )[0];
+
+  if (!runtime) fail(`No installed iOS runtime supports ${deviceType.name}.`);
+  return { deviceType, runtime };
+}
+
+function resolveExact<T>(
+  items: T[],
+  value: string,
+  kind: string,
+  keys: (item: T) => string[],
+): T {
+  const matches = items.filter((item) => keys(item).includes(value));
+  if (matches.length === 0) fail(`No ${kind} found matching '${value}'.`);
+  if (matches.length > 1) fail(`Multiple ${kind}s match '${value}'. Pass an identifier instead.`);
+  return matches[0];
+}
+
+export async function createSimulator(
+  name: string,
+  options: SimulatorCreationOptions = {},
+): Promise<string> {
+  name = name.trim();
+  if (!name) fail("Simulator name must not be empty.");
+
+  const [devices, runtimes] = await Promise.all([
+    listSimulatorDevices("ios", false),
+    listSimulatorRuntimes(),
+  ]);
+  if (devices.some((device) => device.name === name)) {
+    fail(`A simulator named '${name}' already exists.`);
+  }
+
+  const selection = selectSimulatorCreation(runtimes, options);
+  const { stdout } = await runCliCommand("xcrun", [
+    "simctl", // Run the Simulator control tool through xcrun.
+    "create", // Create one simulator without booting it.
+    name,
+    selection.deviceType.identifier,
+    selection.runtime.identifier,
+  ]);
+  const udid = stdout.trim();
+  if (!udid) fail("CoreSimulator created the simulator but returned no UDID.");
+  return udid;
+}
+
+export function selectSimulatorForDeletion(
+  devices: SimulatorDevice[],
+  nameOrUdid: string,
+): SimulatorDevice {
+  const byUdid = devices.find((device) => device.udid === nameOrUdid);
+  if (byUdid) return byUdid;
+
+  const byName = devices.filter((device) => device.name === nameOrUdid);
+  if (byName.length === 0) fail(`No iOS simulator found named or identified by '${nameOrUdid}'.`);
+  if (byName.length > 1) {
+    fail(`Multiple iOS simulators are named '${nameOrUdid}'. Pass a UDID instead.`);
+  }
+  return byName[0];
+}
+
+export async function deleteSimulator(nameOrUdid: string): Promise<SimulatorDevice> {
+  nameOrUdid = nameOrUdid.trim();
+  if (!nameOrUdid) fail("Simulator name or UDID must not be empty.");
+
+  const device = selectSimulatorForDeletion(
+    await listSimulatorDevices("ios", false),
+    nameOrUdid,
+  );
+  if (device.state === "Booted") {
+    await runCliCommand("xcrun", [
+      "simctl", // Run the Simulator control tool through xcrun.
+      "shutdown", // Stop the simulator before deleting it.
+      device.udid,
+    ]);
+  }
+  await runCliCommand("xcrun", [
+    "simctl", // Run the Simulator control tool through xcrun.
+    "delete", // Delete exactly the resolved simulator.
+    device.udid, // A simctl-sourced UDID can never target a physical device.
+  ]);
+  return device;
 }
 
 export async function bootSimulator(udid: string): Promise<void> {

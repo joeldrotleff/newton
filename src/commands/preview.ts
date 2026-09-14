@@ -21,6 +21,7 @@ export async function previewCommand(
   const simulator = await resolveSimulator({
     platform,
     sim: runOpts.sim,
+    udid: runOpts.udid,
     idiom: runOpts.idiom,
     appStore: runOpts.appStore,
     preferred: runOpts.preferred,

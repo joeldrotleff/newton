@@ -5,7 +5,11 @@ import {
   isAppStoreCompatible,
   parseVersion,
   selectSimulator,
+  selectSimulatorCreation,
+  selectSimulatorForDeletion,
   SimulatorDevice,
+  SimulatorDeviceType,
+  SimulatorRuntime,
 } from "../src/ios/simulator.ts";
 
 function device(
@@ -127,4 +131,87 @@ Deno.test("assertCompatibleSelection rejects conflicting --idiom and --app-store
 
 Deno.test("assertCompatibleSelection allows matching --idiom and --app-store", () => {
   assertCompatibleSelection({ idiom: "ipad", appStore: "ipad" });
+});
+
+const iphone17: SimulatorDeviceType = {
+  name: "iPhone 17",
+  identifier: "com.apple.CoreSimulator.SimDeviceType.iPhone-17",
+  productFamily: "iPhone",
+};
+const iphone17Pro: SimulatorDeviceType = {
+  name: "iPhone 17 Pro",
+  identifier: "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro",
+  productFamily: "iPhone",
+};
+
+function runtime(
+  version: string,
+  supportedDeviceTypes: SimulatorDeviceType[],
+): SimulatorRuntime {
+  return {
+    name: `iOS ${version}`,
+    identifier: `com.apple.CoreSimulator.SimRuntime.iOS-${version.replaceAll(".", "-")}`,
+    version,
+    isAvailable: true,
+    supportedDeviceTypes,
+  };
+}
+
+Deno.test("selectSimulatorCreation defaults to iPhone 17 on the newest compatible iOS runtime", () => {
+  const unavailable = { ...runtime("27.0", [iphone17]), isAvailable: false };
+  const watch = {
+    ...runtime("99.0", [iphone17]),
+    identifier: "com.apple.CoreSimulator.SimRuntime.watchOS-99-0",
+  };
+  const selection = selectSimulatorCreation([
+    runtime("26.0", [iphone17]),
+    runtime("26.2", [iphone17, iphone17Pro]),
+    unavailable,
+    watch,
+  ]);
+
+  assertEquals(selection.deviceType, iphone17);
+  assertEquals(selection.runtime.version, "26.2");
+});
+
+Deno.test("selectSimulatorCreation accepts exact device type and runtime identifiers", () => {
+  const ios26 = runtime("26.0", [iphone17, iphone17Pro]);
+  const selection = selectSimulatorCreation([ios26], {
+    deviceType: iphone17Pro.identifier,
+    runtime: ios26.identifier,
+  });
+
+  assertEquals(selection, { deviceType: iphone17Pro, runtime: ios26 });
+});
+
+Deno.test("selectSimulatorCreation rejects an incompatible requested runtime", () => {
+  assertThrows(
+    () =>
+      selectSimulatorCreation([
+        runtime("18.4", [iphone17]),
+        runtime("26.0", [iphone17Pro]),
+      ], {
+        deviceType: "iPhone 17 Pro",
+        runtime: "18.4",
+      }),
+    Error,
+    "No iOS runtime compatible with iPhone 17 Pro",
+  );
+});
+
+Deno.test("selectSimulatorForDeletion requires an exact unambiguous simulator match", () => {
+  const first = { ...device("quest-123"), udid: "FIRST" };
+  const second = { ...device("quest-123", "18.1"), udid: "SECOND" };
+
+  assertEquals(selectSimulatorForDeletion([first, second], "SECOND"), second);
+  assertThrows(
+    () => selectSimulatorForDeletion([first, second], "quest-123"),
+    Error,
+    "Multiple iOS simulators",
+  );
+  assertThrows(
+    () => selectSimulatorForDeletion([first], "missing"),
+    Error,
+    "No iOS simulator found",
+  );
 });

@@ -1,6 +1,7 @@
 import { ApplePlatform, loadConfig, resolveSchemeSettings } from "../ios/config.ts";
 import { RunOptions } from "../ios/run.ts";
 import { ScreenshotDisplay } from "../ios/screenshot.ts";
+import { fail } from "../util/errors.ts";
 
 // Cliffy converts kebab-case flags (e.g. --bundle-id) to camelCase keys (bundleId).
 // These option types describe what each subcommand's `.action()` receives.
@@ -21,6 +22,8 @@ export interface CreateCommandOptions {
 export interface RunCliOptions {
   scheme?: string;
   configuration?: string;
+  sim?: string;
+  udid?: string;
   idiom?: "iphone" | "ipad";
   appStore?: "iphone" | "ipad";
   device?: string | boolean;
@@ -32,6 +35,8 @@ export interface RunCliOptions {
 }
 
 export interface TestCliOptions {
+  sim?: string;
+  udid?: string;
   idiom?: "iphone" | "ipad";
   appStore?: "iphone" | "ipad";
   device?: string | boolean;
@@ -66,6 +71,11 @@ export interface CleanSimsCliOptions {
   runtime?: string;
 }
 
+export interface SimulatorCreateCliOptions {
+  deviceType?: string;
+  runtime?: string;
+}
+
 // Resolves run options from newton.json plus CLI-only flags (idiom, device, logging, etc.).
 export async function resolveRunOptions(
   opts: RunCliOptions,
@@ -75,6 +85,9 @@ export async function resolveRunOptions(
   // --device (with or without a value) selects a connected device; otherwise use the simulator.
   const deviceName = typeof opts.device === "string" ? opts.device : undefined;
   const target = opts.device ? "device" : "sim";
+  if (opts.device && (opts.sim || opts.udid)) {
+    fail("--device can't be combined with --sim or --udid.");
+  }
 
   // CLI flags override newton.json so a single project can run multiple schemes
   // (e.g. a QuestDev build) without editing the file. A scheme pins its own
@@ -100,6 +113,8 @@ export async function resolveRunOptions(
     appName,
     // Soft default; resolveSimulator ignores it when an idiom/app-store flag is present.
     preferred: config.preferredSimulator,
+    sim: opts.sim,
+    udid: opts.udid,
     idiom: opts.idiom,
     appStore: opts.appStore,
     device: deviceName,

@@ -157,6 +157,45 @@ newton sims --app-store ipad
 Lists available simulators for the platform in `newton.json` and marks Newton's default selection.
 For iOS, it also marks App Store screenshot-compatible devices.
 
+### Named simulator lifecycle
+
+```sh
+newton sim-create "quest-ENG-123"
+newton sim-create "quest-ENG-123" --device-type "iPhone 17 Pro" --runtime 26.0
+newton sim-delete "quest-ENG-123"
+newton sim-delete 00000000-0000-0000-0000-000000000000
+```
+
+`sim-create` creates one shutdown iOS simulator. The name must be unique. It defaults to the iPhone
+17 device type and the newest installed iOS runtime that supports it. `--device-type` accepts an
+exact device type name or identifier. `--runtime` accepts an exact runtime name, version, or
+identifier.
+
+On success, `sim-create` writes one JSON line to stdout with this stable shape:
+
+```json
+{ "udid": "00000000-0000-0000-0000-000000000000" }
+```
+
+Herdr should read this UDID and pass `--udid` to every Newton command for the task:
+
+```sh
+udid=$(newton sim-create "quest-ENG-123" | jq -r .udid)
+newton build --udid "$udid"
+newton test --udid "$udid"
+newton run --udid "$udid" --detach
+newton screenshot --udid "$udid" --output shot.png
+newton preview metricCards --udid "$udid"
+newton sim-delete "$udid"
+```
+
+These commands also accept `--sim` with an exact simulator name. A UDID is safer for automation
+because simulator names can be shared.
+
+`sim-delete` deletes one iOS simulator by exact name or UDID. It rejects missing targets and names
+shared by more than one simulator; use a UDID to resolve an ambiguous name. It only resolves devices
+reported by CoreSimulator and cannot target a physical device.
+
 ### Clean simulators
 
 ```sh

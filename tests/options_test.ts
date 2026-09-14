@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { resolveRunOptions } from "../src/commands/options.ts";
 import { CONFIG_FILE } from "../src/ios/config.ts";
 
@@ -105,6 +105,11 @@ Deno.test("resolveRunOptions maps boolean --device to device target with no name
 
     assertEquals(options.target, "device");
     assertEquals(options.device, undefined);
+    await assertRejects(
+      () => resolveRunOptions({ device: true, udid: "SIMULATOR-UDID" }),
+      Error,
+      "can't be combined",
+    );
   } finally {
     Deno.chdir(cwd);
     await Deno.remove(tempDir, { recursive: true });
@@ -160,9 +165,13 @@ Deno.test("resolveRunOptions forwards app arguments", async () => {
     Deno.chdir(tempDir);
     await Deno.writeTextFile(CONFIG_FILE, JSON.stringify({}));
 
-    const options = await resolveRunOptions({}, ["-LocalTestMode", "YES"]);
+    const options = await resolveRunOptions(
+      { udid: "SIMULATOR-UDID" },
+      ["-LocalTestMode", "YES"],
+    );
 
     assertEquals(options.target, "sim");
+    assertEquals(options.udid, "SIMULATOR-UDID");
     assertEquals(options.appArgs, ["-LocalTestMode", "YES"]);
   } finally {
     Deno.chdir(cwd);

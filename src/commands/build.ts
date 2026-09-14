@@ -34,6 +34,7 @@ async function resolveBuildDestination(
   return await resolveSimulator({
     platform,
     sim: options.sim,
+    udid: options.udid,
     idiom: options.idiom,
     appStore: options.appStore,
     preferred: options.preferred,

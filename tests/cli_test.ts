@@ -21,11 +21,34 @@ Deno.test("buildCli registers all top-level subcommands", () => {
     "reload",
     "run",
     "screenshot",
+    "sim-create",
+    "sim-delete",
     "sims",
     "teams",
     "test",
     "xcode",
   ]);
+});
+
+Deno.test("simulator lifecycle subcommands stay narrow", () => {
+  const create = buildCli().getCommand("sim-create");
+  const remove = buildCli().getCommand("sim-delete");
+  if (!create || !remove) throw new Error("simulator lifecycle commands not found");
+
+  assertEquals(create.getOptions().map((option) => option.name), ["device-type", "runtime"]);
+  assertEquals(remove.getOptions(), []);
+  assertEquals(create.getArguments().map((argument) => argument.name), ["name"]);
+  assertEquals(remove.getArguments().map((argument) => argument.name), ["name-or-udid"]);
+});
+
+Deno.test("local simulator commands accept exact simulator selectors", () => {
+  for (const name of ["build", "test", "run", "screenshot", "preview"]) {
+    const command = buildCli().getCommand(name);
+    if (!command) throw new Error(`${name} command not found`);
+    const options = command.getOptions().map((option) => option.name);
+    assertEquals(options.includes("sim"), true, `expected --sim on '${name}'`);
+    assertEquals(options.includes("udid"), true, `expected --udid on '${name}'`);
+  }
 });
 
 Deno.test("open subcommand targets an already booted simulator", () => {
@@ -57,7 +80,7 @@ Deno.test("test subcommand declares build-like options", () => {
   if (!test) throw new Error("test command not found");
 
   const optionNames = test.getOptions().map((o) => o.name);
-  for (const flag of ["idiom", "app-store", "device", "define", "verbose"]) {
+  for (const flag of ["sim", "udid", "idiom", "app-store", "device", "define", "verbose"]) {
     assertEquals(
       optionNames.includes(flag),
       true,

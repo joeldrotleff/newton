@@ -16,6 +16,7 @@ import { psCommand } from "./commands/ps.ts";
 import { reloadCommand } from "./commands/reload.ts";
 import { runCommand } from "./commands/run.ts";
 import { screenshotCommand } from "./commands/screenshot.ts";
+import { simCreateCommand, simDeleteCommand } from "./commands/simulator-lifecycle.ts";
 import { simsCommand } from "./commands/sims.ts";
 import { teamsCommand } from "./commands/teams.ts";
 import { testCommand } from "./commands/test.ts";
@@ -110,6 +111,41 @@ export function buildCli(overrides: Partial<CliDependencies> = {}) {
         .action((options) => simsCommand(options)),
     )
     //
+    // sim-create
+    //
+    .command(
+      "sim-create",
+      new Command()
+        .description("Create one named iOS simulator and print its UDID as JSON.")
+        .arguments("<name:string>")
+        .option(
+          "--device-type <name:string>",
+          "Exact device type name or identifier (default: iPhone 17)",
+        )
+        .option(
+          "--runtime <runtime:string>",
+          "Exact iOS runtime name, version, or identifier (default: newest compatible)",
+        )
+        .example("Task simulator", 'newton sim-create "quest-ENG-123"')
+        .example(
+          "Pinned model and runtime",
+          'newton sim-create "quest-ENG-123" --device-type "iPhone 17 Pro" --runtime 26.0',
+        )
+        .action((options, name) => simCreateCommand(name, options)),
+    )
+    //
+    // sim-delete
+    //
+    .command(
+      "sim-delete",
+      new Command()
+        .description("Delete one iOS simulator by exact name or UDID.")
+        .arguments("<name-or-udid:string>")
+        .example("Delete by task name", 'newton sim-delete "quest-ENG-123"')
+        .example("Delete by UDID", "newton sim-delete 00000000-0000-0000-0000-000000000000")
+        .action((_options, nameOrUdid) => simDeleteCommand(nameOrUdid)),
+    )
+    //
     // clean-sims
     //
     .command(
@@ -177,6 +213,8 @@ export function buildCli(overrides: Partial<CliDependencies> = {}) {
           "--configuration <name:string>",
           "Override the build configuration (defaults to the scheme's own)",
         )
+        .option("--sim <name:string>", "Exact simulator name")
+        .option("--udid <id:string>", "Exact simulator UDID")
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
         .option(
           "--app-store <idiom:idiom>",
@@ -202,6 +240,8 @@ export function buildCli(overrides: Partial<CliDependencies> = {}) {
       new Command()
         .type("idiom", idiomType)
         .description("Run the configured scheme's tests on a simulator or connected device.")
+        .option("--sim <name:string>", "Exact simulator name")
+        .option("--udid <id:string>", "Exact simulator UDID")
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
         .option(
           "--app-store <idiom:idiom>",
@@ -243,6 +283,8 @@ export function buildCli(overrides: Partial<CliDependencies> = {}) {
           "--configuration <name:string>",
           "Override the build configuration (defaults to the scheme's own)",
         )
+        .option("--sim <name:string>", "Exact simulator name")
+        .option("--udid <id:string>", "Exact simulator UDID")
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
         .option(
           "--app-store <idiom:idiom>",
@@ -305,6 +347,8 @@ export function buildCli(overrides: Partial<CliDependencies> = {}) {
           'Capture an app-registered SwiftUI preview by name as a simulator screenshot. Requires DEBUG app-side code: read UserDefaults(key: "NewtonPreview") and route to a view that renders the named preview. See the README for a full setup guide.',
         )
         .arguments("<name:string> [appArgs...:string]")
+        .option("--sim <name:string>", "Exact simulator name")
+        .option("--udid <id:string>", "Exact simulator UDID")
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
         .option(
           "--app-store <idiom:idiom>",

@@ -58,17 +58,35 @@ export async function runCliCommand(
 export async function runCliCommandInTerminal(
   command: string,
   args: string[],
-  options: { cwd?: string; check?: boolean } = {},
+  options: { cwd?: string; check?: boolean; timestamps?: boolean } = {},
 ): Promise<number> {
+  const output = options.timestamps ? "piped" : "inherit";
   const process = new Deno.Command(command, {
     args,
     cwd: options.cwd,
     stdin: "inherit",
-    stdout: "inherit",
-    stderr: "inherit",
+    stdout: output,
+    stderr: output,
   }).spawn();
+  const streams = options.timestamps ? pipeTimestampedOutput(process) : Promise.resolve();
+  const code = await waitForProcess(command, args, process, options.check);
+  await streams;
+  return code;
+}
 
-  return await waitForProcess(command, args, process, options.check);
+export function timestampLine(text: string, date = new Date()): string {
+  return `[${date.toISOString()}] ${text}`;
+}
+
+export async function pipeTimestampedOutput(process: Deno.ChildProcess): Promise<void> {
+  await Promise.all([
+    readStreamLines(process.stdout, "stdout", async ({ text }) => {
+      await Deno.stdout.write(encoder.encode(`${timestampLine(text)}\n`));
+    }),
+    readStreamLines(process.stderr, "stderr", async ({ text }) => {
+      await Deno.stderr.write(encoder.encode(`${timestampLine(text)}\n`));
+    }),
+  ]);
 }
 
 // Run a command live while letting Newton process stdout/stderr one line at a time.

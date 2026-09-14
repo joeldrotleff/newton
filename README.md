@@ -259,8 +259,8 @@ newton run --device "Joel's iPhone"
 Builds and launches the app on its configured platform. iOS and watchOS apps are installed on a
 simulator or connected device; macOS apps launch directly on the local Mac.
 
-By default, `run` attaches to the app console. Use `--detach` to launch and exit without streaming
-logs.
+By default, `run` attaches to the app console and prefixes each log line with an ISO timestamp. Use
+`--detach` to launch and exit without streaming logs.
 
 Convenience logging flags are passed as app launch arguments:
 

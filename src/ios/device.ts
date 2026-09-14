@@ -123,6 +123,6 @@ export async function launchDeviceApp(
     bundleId,
     ...(appArgs.length > 0 ? ["--", ...appArgs] : []), // Separate devicectl args from app args.
   ];
-  if (logs) await runCliCommandInTerminal("xcrun", args);
+  if (logs) await runCliCommandInTerminal("xcrun", args, { timestamps: true });
   else await runCliCommand("xcrun", args);
 }

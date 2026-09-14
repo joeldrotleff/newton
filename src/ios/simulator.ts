@@ -353,7 +353,7 @@ export async function launchSimulatorApp(
       udid,
       bundleId,
       ...appArgs, // Forward Newton app arguments to the launched app.
-    ]);
+    ], { timestamps: true });
   } else {
     await runCliCommand("xcrun", [
       "simctl", // Run the Simulator control tool through xcrun.

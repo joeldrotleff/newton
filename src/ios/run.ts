@@ -1,7 +1,7 @@
 import { fail } from "../util/errors.ts";
 import { missingRequiredConfigFieldMessage } from "./config.ts";
 import { join } from "../util/paths.ts";
-import { runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
+import { pipeTimestampedOutput, runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
 import { locateBuiltApp, readBundleId } from "./appBundle.ts";
 import { installDeviceApp, launchDeviceApp, resolveDevice } from "./device.ts";
 import { discoverProject } from "./project.ts";
@@ -183,18 +183,21 @@ async function reloadLoop(
         ...appArgs,
       ],
       stdin: "inherit",
-      stdout: "inherit",
-      stderr: "inherit",
+      stdout: "piped",
+      stderr: "piped",
     }).spawn();
+    const logs = pipeTimestampedOutput(logProcess);
 
     // Wait for either the process to exit, a SIGUSR1 reload, or SIGINT quit.
     const signal = await raceProcessAndSignal(logProcess);
 
     if (signal === "exited") {
+      await logs;
       break;
     }
 
     await terminateChild(logProcess);
+    await logs;
 
     if (signal === "interrupted") {
       await removeSession(cwd);
@@ -315,7 +318,9 @@ async function runMacApp(
   }
 
   if (!options.appName) fail(await missingRequiredConfigFieldMessage("appName"));
-  await runCliCommandInTerminal(join(appPath, "Contents", "MacOS", options.appName), appArgs);
+  await runCliCommandInTerminal(join(appPath, "Contents", "MacOS", options.appName), appArgs, {
+    timestamps: true,
+  });
 }
 
 export function launchArguments(options: RunOptions): string[] {

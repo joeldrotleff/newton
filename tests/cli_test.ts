@@ -17,8 +17,6 @@ Deno.test("buildCli registers all top-level subcommands", () => {
     "lsp",
     "open",
     "preview",
-    "ps",
-    "reload",
     "run",
     "screenshot",
     "sim-create",

@@ -21,10 +21,16 @@ export async function listDevices(): Promise<AppleDevice[]> {
     jsonPath,
   ]);
   const json = JSON.parse(await Deno.readTextFile(jsonPath));
+  return parseDevices(json);
+}
+
+export function parseDevices(json: any): AppleDevice[] {
   const devices = json.result?.devices ?? json.devices ?? [];
 
   return devices
     .filter((device: any) => {
+      const reality = device.properties?.hardware?.reality ?? device.hardwareProperties?.reality;
+      if (reality === "simulated") return false;
       const deviceType = device.hardwareProperties?.deviceType;
       const platform = device.hardwareProperties?.platform ?? device.deviceProperties?.platform ??
         device.platform;

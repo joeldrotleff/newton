@@ -44,6 +44,14 @@ export interface TestCliOptions {
   verbose?: boolean;
 }
 
+export interface RecordCliOptions {
+  output?: string;
+  duration?: number;
+  sim?: string;
+  udid?: string;
+  idiom?: "iphone" | "ipad";
+}
+
 export interface ScreenshotCliOptions {
   output?: string;
   display?: ScreenshotDisplay;

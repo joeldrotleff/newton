@@ -17,6 +17,7 @@ Deno.test("buildCli registers all top-level subcommands", () => {
     "lsp",
     "open",
     "preview",
+    "record",
     "run",
     "screenshot",
     "sim-create",
@@ -40,13 +41,24 @@ Deno.test("simulator lifecycle subcommands stay narrow", () => {
 });
 
 Deno.test("local simulator commands accept exact simulator selectors", () => {
-  for (const name of ["build", "test", "run", "screenshot", "preview"]) {
+  for (const name of ["build", "test", "run", "screenshot", "preview", "record"]) {
     const command = buildCli().getCommand(name);
     if (!command) throw new Error(`${name} command not found`);
     const options = command.getOptions().map((option) => option.name);
     assertEquals(options.includes("sim"), true, `expected --sim on '${name}'`);
     assertEquals(options.includes("udid"), true, `expected --udid on '${name}'`);
   }
+});
+
+Deno.test("record parses duration and output without launching a simulator", async () => {
+  const record = buildCli().getCommand("record");
+  if (!record) throw new Error("record command not found");
+  let received: unknown;
+  record.action((options) => {
+    received = options;
+  });
+  await record.parse(["--duration", "0.5", "--output", "demo.mov", "--sim", "iPhone 17"]);
+  assertEquals(received, { duration: 0.5, output: "demo.mov", sim: "iPhone 17" });
 });
 
 Deno.test("open subcommand targets an already booted simulator", () => {

@@ -14,6 +14,7 @@ import { xcodeCommand } from "./commands/xcode.ts";
 import { previewCommand } from "./commands/preview.ts";
 import { runCommand } from "./commands/run.ts";
 import { screenshotCommand } from "./commands/screenshot.ts";
+import { recordCommand } from "./commands/record.ts";
 import { simCreateCommand, simDeleteCommand } from "./commands/simulator-lifecycle.ts";
 import { simsCommand } from "./commands/sims.ts";
 import { teamsCommand } from "./commands/teams.ts";
@@ -307,6 +308,23 @@ export function buildCli(overrides: Partial<CliDependencies> = {}) {
         .action(function (options, ...appArgs) {
           return run(options, [...appArgs, ...this.getLiteralArgs()]);
         }),
+    )
+    //
+    // record
+    //
+    .command(
+      "record",
+      new Command()
+        .type("idiom", idiomType)
+        .description("Record video from the selected simulator. Press Ctrl-C to stop.")
+        .option("--sim <name:string>", "Simulator name")
+        .option("--udid <id:string>", "Simulator UDID")
+        .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
+        .option("--output <path:file>", "Output video file path")
+        .option("--duration <seconds:number>", "Stop recording after this many seconds")
+        .example("Record until Ctrl-C", "newton record")
+        .example("Record for 10 seconds", "newton record --duration 10 --output demo.mov")
+        .action((options) => recordCommand(options)),
     )
     //
     // screenshot

@@ -42,9 +42,11 @@ deno run --allow-run --allow-read --allow-write --allow-env src/main.ts <subcomm
 
 ## Architecture notes
 
-- **`newton.json` is the source of truth** for platform, scheme, project/workspace, configuration,
-  appName, and preferred simulator. CLI flags only cover runtime concerns (idiom, device target,
-  logging, verbose). Arguments after `--` go to the app. See commit `849c6b2`.
+- **`newton.json` is the source of truth** for platform, scheme, project/workspace, and preferred
+  simulator. The scheme decides the build configuration and app product; Newton never passes
+  `-configuration` and finds the built app by asking `xcodebuild -showBuildSettings`. CLI flags only
+  cover runtime concerns (scheme override, idiom, device target, logging, verbose). Arguments after
+  `--` go to the app. See commit `849c6b2`.
 - **DerivedData** always lives at `.newton/DerivedData`
   ([defaultDerivedDataPath](src/ios/project.ts#L77)). There is no override flag.
 - **Build logs** are written to `.newton/logs/<timestamp>.log` by

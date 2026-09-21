@@ -43,17 +43,15 @@ Deno.test("buildArgs constructs native macOS xcodebuild command", () => {
   assertEquals(args.includes("CODE_SIGN_IDENTITY=-"), false);
 });
 
-Deno.test("buildArgs passes custom configuration names through to xcodebuild", () => {
+Deno.test("buildArgs never passes -configuration; the scheme decides", () => {
   const args = buildArgs({
     container: { kind: "project", path: "/tmp/Axion.xcodeproj" },
     scheme: "Axion",
-    configuration: "Debug Staging",
     destination: simulatorDevice,
     target: "sim",
   });
 
-  assertEquals(args.includes("-configuration"), true);
-  assertEquals(args.includes("Debug Staging"), true);
+  assertEquals(args.includes("-configuration"), false);
 });
 
 Deno.test("buildArgs targets a connected device with id= destination and no sim code-signing override", () => {

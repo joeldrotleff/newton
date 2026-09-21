@@ -1,16 +1,9 @@
 import { fail } from "../util/errors.ts";
 import { dirname, exists, relative, resolve } from "../util/paths.ts";
 import { runCliCommand } from "../util/process.ts";
-import {
-  containerArgs,
-  defaultDerivedDataPath,
-  discoverProject,
-  XcodeContainer,
-} from "./project.ts";
-import { genericBuildDestination } from "./platform.ts";
+import { discoverProject, XcodeContainer } from "./project.ts";
 import type { ApplePlatform } from "./platform.ts";
 import { resolveSimulator } from "./simulator.ts";
-import { showBuildSettings } from "./xcodebuild.ts";
 
 export type { ApplePlatform } from "./platform.ts";
 
@@ -21,15 +14,27 @@ export interface NewtonConfig {
   scheme?: string;
   project?: string;
   workspace?: string;
-  configuration?: string;
-  appName?: string;
   preferredSimulator?: string;
 }
+
+// Formerly written by `newton init`; the scheme decides these now, and stale
+// copies here caused builds of the wrong configuration.
+const REMOVED_CONFIG_FIELDS = ["configuration", "appName"];
 
 export async function loadConfig(cwd = Deno.cwd()): Promise<NewtonConfig> {
   const path = resolve(cwd, CONFIG_FILE);
   if (!await exists(path)) return {};
-  return JSON.parse(await Deno.readTextFile(path));
+  const config = JSON.parse(await Deno.readTextFile(path));
+  const removed = REMOVED_CONFIG_FIELDS.filter((field) => field in config);
+  if (removed.length > 0) {
+    fail(
+      `${CONFIG_FILE} contains ${removed.map((f) => `"${f}"`).join(" and ")}, ` +
+        `which Newton no longer reads — the scheme decides the build configuration and app name.\n` +
+        `Remove the field${removed.length > 1 ? "s" : ""} from ${resolve(cwd, CONFIG_FILE)} ` +
+        `or rerun \`newton init --force\`.`,
+    );
+  }
+  return config;
 }
 
 export async function missingRequiredConfigFieldMessage(
@@ -78,13 +83,7 @@ export async function writeInitialConfig(
   const scheme = await chooseScheme(container, schemes);
   const platform = options.platform ?? "ios";
   const simulator = platform === "macos" ? undefined : await resolveSimulator({ platform });
-  let appSettings: { configuration?: string; appName?: string };
-  if (platform === "macos") {
-    appSettings = await resolveSchemeSettings(scheme, platform);
-  } else {
-    if (!simulator) fail(`No ${platform} simulator found.`);
-    appSettings = await resolveAppSettings({ container, scheme, simulator, platform });
-  }
+  if (platform !== "macos" && !simulator) fail(`No ${platform} simulator found.`);
 
   const config: NewtonConfig = {
     platform,
@@ -92,8 +91,6 @@ export async function writeInitialConfig(
     ...(container.kind === "workspace"
       ? { workspace: relative(Deno.cwd(), container.path) }
       : { project: relative(Deno.cwd(), container.path) }),
-    configuration: appSettings.configuration,
-    appName: appSettings.appName,
     ...(simulator ? { preferredSimulator: simulator.name } : {}),
   };
 
@@ -123,58 +120,6 @@ export async function listSchemes(container: XcodeContainer): Promise<string[]> 
   const { stdout } = await runCliCommand("xcodebuild", args);
   const json = JSON.parse(stdout);
   return json.project?.schemes ?? json.workspace?.schemes ?? [];
-}
-
-// Reads the configuration and app name a scheme builds, straight from its build
-// settings. A scheme pins its own configuration, so when `--scheme` overrides
-// newton.json we can trust the scheme instead of forcing newton.json's values.
-// Uses a generic destination since these settings don't depend on the device.
-export async function resolveSchemeSettings(
-  scheme: string,
-  platform: ApplePlatform = "ios",
-): Promise<{ configuration?: string; appName?: string }> {
-  const container = await discoverProject();
-  const { stdout } = await runCliCommand("xcodebuild", [
-    ...containerArgs(container),
-    "-scheme", // Inspect settings for the named scheme.
-    scheme,
-    "-destination", // Generic destination — configuration/product don't vary by device.
-    genericBuildDestination(platform),
-    "-derivedDataPath", // Keep this query out of the default DerivedData location.
-    defaultDerivedDataPath(),
-    "-showBuildSettings",
-    "-json",
-  ]);
-  const settings = JSON.parse(stdout) as { buildSettings?: Record<string, string> }[];
-  const app = settings.find((s) => s.buildSettings?.WRAPPER_NAME?.endsWith(".app"))?.buildSettings;
-  return {
-    configuration: app?.CONFIGURATION,
-    appName: app?.WRAPPER_NAME?.replace(/\.app$/, ""),
-  };
-}
-
-async function resolveAppSettings(options: {
-  container: XcodeContainer;
-  scheme: string;
-  simulator: Awaited<ReturnType<typeof resolveSimulator>>;
-  platform: Exclude<ApplePlatform, "macos">;
-}): Promise<{ configuration: string; appName: string }> {
-  const settings = await showBuildSettings({
-    container: options.container,
-    scheme: options.scheme,
-    destination: options.simulator,
-    target: "sim",
-    platform: options.platform,
-  });
-  const appTarget = settings.find((target) => target.buildSettings?.WRAPPER_NAME?.endsWith(".app"));
-  const buildSettings = appTarget?.buildSettings;
-  if (!buildSettings?.WRAPPER_NAME) {
-    fail(`Could not determine app product name for scheme ${options.scheme}.`);
-  }
-  return {
-    configuration: buildSettings.CONFIGURATION ?? "Debug",
-    appName: buildSettings.WRAPPER_NAME.replace(/\.app$/, ""),
-  };
 }
 
 async function chooseScheme(container: XcodeContainer, schemes: string[]): Promise<string> {

@@ -18,8 +18,6 @@ export const macDestination: MacDestination = { name: "My Mac" };
 export interface BuildOptions {
   container: XcodeContainer;
   scheme: string;
-  configuration?: string;
-  appName?: string;
   destination: SimulatorDevice | AppleDevice | MacDestination;
   target: "sim" | "device" | "mac";
   platform?: ApplePlatform;
@@ -115,7 +113,7 @@ function xcodebuildArgs(options: BuildOptions, actions: string[]): string[] {
     "-derivedDataPath", // Keep intermediate build files in Newton's local derived data folder.
     defaultDerivedDataPath(),
     "-parallelizeTargets", // Let xcodebuild build independent targets concurrently.
-    ...configurationArgs(options.configuration),
+    // No -configuration: the scheme decides which configuration each action uses.
     "ONLY_ACTIVE_ARCH=YES", // Build only the selected destination architecture for faster local runs.
     ...(options.target === "sim" ? ["CODE_SIGN_IDENTITY=-"] : []), // Simulators do not need code signing.
     // Let xcodebuild register App IDs, enable capabilities, and create/update
@@ -125,10 +123,6 @@ function xcodebuildArgs(options: BuildOptions, actions: string[]): string[] {
     ...swiftFlagsArgs(options.swiftFlags),
     ...actions,
   ];
-}
-
-function configurationArgs(configuration?: string): string[] {
-  return configuration ? ["-configuration", configuration] : [];
 }
 
 // Appended to xcodebuild as a single OTHER_SWIFT_FLAGS=... setting, joined by spaces.
@@ -218,7 +212,6 @@ export async function showBuildSettings(options: BuildOptions): Promise<BuildSet
     buildDestination(options),
     "-derivedDataPath", // Use Newton's per-worktree derived data location.
     defaultDerivedDataPath(),
-    ...configurationArgs(options.configuration),
     "-showBuildSettings", // Print target build settings instead of building.
     "-json", // Emit machine-readable settings.
   ]);

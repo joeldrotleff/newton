@@ -1,6 +1,6 @@
 import { fail } from "../util/errors.ts";
 import { missingRequiredConfigFieldMessage } from "./config.ts";
-import { join } from "../util/paths.ts";
+import { basename, join } from "../util/paths.ts";
 import { runCliCommand, runCliCommandInTerminal } from "../util/process.ts";
 import { locateBuiltApp, readBundleId } from "./appBundle.ts";
 import { installDeviceApp, launchDeviceApp, resolveDevice } from "./device.ts";
@@ -15,8 +15,6 @@ export interface RunOptions {
   project?: string;
   workspace?: string;
   target?: "sim" | "device" | "mac";
-  configuration?: string;
-  appName?: string;
   sim?: string;
   udid?: string;
   idiom?: "iphone" | "ipad";
@@ -153,8 +151,8 @@ async function runMacApp(
     return;
   }
 
-  if (!options.appName) fail(await missingRequiredConfigFieldMessage("appName"));
-  await runCliCommandInTerminal(join(appPath, "Contents", "MacOS", options.appName), appArgs, {
+  const binary = basename(appPath).replace(/\.app$/, "");
+  await runCliCommandInTerminal(join(appPath, "Contents", "MacOS", binary), appArgs, {
     timestamps: true,
   });
 }

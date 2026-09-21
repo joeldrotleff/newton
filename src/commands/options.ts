@@ -1,4 +1,4 @@
-import { ApplePlatform, loadConfig, resolveSchemeSettings } from "../ios/config.ts";
+import { ApplePlatform, loadConfig } from "../ios/config.ts";
 import { RunOptions } from "../ios/run.ts";
 import { ScreenshotDisplay } from "../ios/screenshot.ts";
 import { fail } from "../util/errors.ts";
@@ -21,7 +21,7 @@ export interface CreateCommandOptions {
 
 export interface RunCliOptions {
   scheme?: string;
-  configuration?: string;
+  configuration?: string; // Removed flag, kept hidden so we can explain its removal.
   sim?: string;
   udid?: string;
   idiom?: "iphone" | "ipad";
@@ -97,19 +97,17 @@ export async function resolveRunOptions(
     fail("--device can't be combined with --sim or --udid.");
   }
 
-  // CLI flags override newton.json so a single project can run multiple schemes
-  // (e.g. a QuestDev build) without editing the file. A scheme pins its own
-  // configuration and product, so when --scheme is given we read those from the
-  // scheme itself — no need to repeat --configuration to match it.
-  const scheme = opts.scheme ?? config.scheme;
-  let configuration = opts.configuration ?? config.configuration;
-  let appName = config.appName;
-  const platform = config.platform ?? "ios";
-  if (opts.scheme) {
-    const derived = await resolveSchemeSettings(opts.scheme, platform);
-    configuration = opts.configuration ?? derived.configuration ?? config.configuration;
-    appName = derived.appName ?? config.appName;
+  if (opts.configuration) {
+    fail(
+      "--configuration was removed. The scheme decides its build configuration; " +
+        "pick a different scheme with --scheme instead.",
+    );
   }
+
+  // --scheme overrides newton.json so a single project can run multiple schemes
+  // (e.g. a QuestDev build) without editing the file.
+  const scheme = opts.scheme ?? config.scheme;
+  const platform = config.platform ?? "ios";
 
   return {
     platform,
@@ -117,8 +115,6 @@ export async function resolveRunOptions(
     project: config.project,
     workspace: config.workspace,
     target: platform === "macos" ? "mac" : target,
-    configuration,
-    appName,
     // Soft default; resolveSimulator ignores it when an idiom/app-store flag is present.
     preferred: config.preferredSimulator,
     sim: opts.sim,

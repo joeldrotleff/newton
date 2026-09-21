@@ -37,8 +37,6 @@ export async function createProject(options: CreateProjectOptions): Promise<Newt
     platform: names.platform,
     scheme: names.moduleName,
     project: relative(names.root, names.projectDir),
-    configuration: "Debug",
-    appName: names.moduleName,
   };
 
   await writeConfig(config, names.root);

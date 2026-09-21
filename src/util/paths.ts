@@ -1,6 +1,6 @@
-import { dirname, join, relative, resolve } from "@std/path";
+import { basename, dirname, join, relative, resolve } from "@std/path";
 
-export { dirname, join, relative, resolve };
+export { basename, dirname, join, relative, resolve };
 
 export async function exists(path: string): Promise<boolean> {
   try {

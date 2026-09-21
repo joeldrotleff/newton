@@ -73,7 +73,6 @@ Deno.test("createProject writes a native watchOS project", async () => {
     assertEquals(config.platform, "watchos");
     assertEquals(config.scheme, "WristNotes");
     assertEquals(config.project, "watchos/WristNotes.xcodeproj");
-    assertEquals(config.appName, "WristNotes");
 
     const project = await Deno.readTextFile(
       `${tempDir}/watchos/WristNotes.xcodeproj/project.pbxproj`,
@@ -105,7 +104,6 @@ Deno.test("createProject writes a native macOS project", async () => {
     assertEquals(config.platform, "macos");
     assertEquals(config.scheme, "MenuHelper");
     assertEquals(config.project, "macos/MenuHelper.xcodeproj");
-    assertEquals(config.appName, "MenuHelper");
 
     const project = await Deno.readTextFile(
       `${tempDir}/macos/MenuHelper.xcodeproj/project.pbxproj`,

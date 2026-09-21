@@ -51,7 +51,7 @@ Deno.test("missingRequiredConfigFieldMessage distinguishes incomplete local conf
   const tempDir = await Deno.makeTempDir();
   try {
     Deno.chdir(tempDir);
-    await Deno.writeTextFile(CONFIG_FILE, JSON.stringify({ configuration: "Debug" }));
+    await Deno.writeTextFile(CONFIG_FILE, JSON.stringify({ platform: "ios" }));
 
     const message = await missingRequiredConfigFieldMessage("scheme");
 

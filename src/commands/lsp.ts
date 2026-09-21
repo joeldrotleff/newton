@@ -53,7 +53,6 @@ export async function lspCommand(): Promise<void> {
     derivedData,
     "-resultBundlePath",
     resultBundlePath,
-    ...(config.configuration ? ["-configuration", config.configuration] : []),
     "ONLY_ACTIVE_ARCH=YES",
     "CODE_SIGN_IDENTITY=-",
     "build",

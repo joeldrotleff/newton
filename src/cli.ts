@@ -208,10 +208,10 @@ export function buildCli(overrides: Partial<CliDependencies> = {}) {
         .type("idiom", idiomType)
         .description("Build the configured scheme for its Apple platform destination.")
         .option("--scheme <name:string>", "Override the scheme from newton.json")
-        .option(
-          "--configuration <name:string>",
-          "Override the build configuration (defaults to the scheme's own)",
-        )
+        // Removed flag, kept hidden so we can explain its removal instead of "unknown option".
+        .option("--configuration <name:string>", "Removed; the scheme decides its configuration.", {
+          hidden: true,
+        })
         .option("--sim <name:string>", "Exact simulator name")
         .option("--udid <id:string>", "Exact simulator UDID")
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")
@@ -278,10 +278,10 @@ export function buildCli(overrides: Partial<CliDependencies> = {}) {
         .description("Build and launch the app on its configured Apple platform.")
         .arguments("[appArgs...:string]")
         .option("--scheme <name:string>", "Override the scheme from newton.json")
-        .option(
-          "--configuration <name:string>",
-          "Override the build configuration (defaults to the scheme's own)",
-        )
+        // Removed flag, kept hidden so we can explain its removal instead of "unknown option".
+        .option("--configuration <name:string>", "Removed; the scheme decides its configuration.", {
+          hidden: true,
+        })
         .option("--sim <name:string>", "Exact simulator name")
         .option("--udid <id:string>", "Exact simulator UDID")
         .option("--idiom <idiom:idiom>", "Device idiom (iphone or ipad) for simulator selection")

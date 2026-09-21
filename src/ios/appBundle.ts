@@ -1,37 +1,25 @@
 import { fail } from "../util/errors.ts";
-import { missingRequiredConfigFieldMessage } from "./config.ts";
 import { exists, join } from "../util/paths.ts";
 import { runCliCommand } from "../util/process.ts";
-import { defaultDerivedDataPath } from "./project.ts";
-import { buildProductsSuffix } from "./platform.ts";
-import { BuildOptions } from "./xcodebuild.ts";
+import { BuildOptions, BuildSettings, showBuildSettings } from "./xcodebuild.ts";
 
+// Asks xcodebuild where the scheme put its app product. Costs an extra
+// xcodebuild call (~1s) but always matches the configuration the scheme chose,
+// so Newton never has to track configuration or product names itself.
 export async function locateBuiltApp(options: BuildOptions): Promise<string> {
-  if (!options.appName) fail(await missingRequiredConfigFieldMessage("appName"));
-  const configuration = options.configuration ?? "Debug";
-  const productDirectory = buildProductsDirectory(
-    configuration,
-    options.platform ?? "ios",
-    options.target,
-  );
-  const appPath = join(
-    defaultDerivedDataPath(),
-    "Build",
-    "Products",
-    productDirectory,
-    `${options.appName}.app`,
-  );
+  const settings = await showBuildSettings(options);
+  const appPath = builtAppPath(settings);
+  if (!appPath) {
+    fail(`Could not find an app product in build settings for scheme ${options.scheme}.`);
+  }
   if (await exists(appPath)) return appPath;
   fail(`Could not locate built .app at ${appPath}.`);
 }
 
-function buildProductsDirectory(
-  configuration: string,
-  platform: NonNullable<BuildOptions["platform"]>,
-  target: BuildOptions["target"],
-): string {
-  const suffix = buildProductsSuffix(platform, target);
-  return suffix ? `${configuration}-${suffix}` : configuration;
+export function builtAppPath(settings: BuildSettings[]): string | null {
+  const app = settings.find((s) => s.buildSettings?.WRAPPER_NAME?.endsWith(".app"))?.buildSettings;
+  if (!app?.TARGET_BUILD_DIR || !app.WRAPPER_NAME) return null;
+  return join(app.TARGET_BUILD_DIR, app.WRAPPER_NAME);
 }
 
 export async function readBundleId(appPath: string): Promise<string> {

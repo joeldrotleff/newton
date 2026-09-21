@@ -2,20 +2,39 @@ import { assertEquals, assertRejects } from "@std/assert";
 import { resolveRunOptions } from "../src/commands/options.ts";
 import { CONFIG_FILE } from "../src/ios/config.ts";
 
-Deno.test("resolveRunOptions reads custom configuration from newton config", async () => {
+Deno.test("resolveRunOptions rejects the removed --configuration flag with guidance", async () => {
+  const cwd = Deno.cwd();
+  const tempDir = await Deno.makeTempDir();
+  try {
+    Deno.chdir(tempDir);
+    await Deno.writeTextFile(CONFIG_FILE, JSON.stringify({ scheme: "Axion" }));
+
+    await assertRejects(
+      () => resolveRunOptions({ configuration: "Release" }),
+      Error,
+      "--configuration was removed",
+    );
+  } finally {
+    Deno.chdir(cwd);
+    await Deno.remove(tempDir, { recursive: true });
+  }
+});
+
+Deno.test("resolveRunOptions rejects newton.json that still has removed fields", async () => {
   const cwd = Deno.cwd();
   const tempDir = await Deno.makeTempDir();
   try {
     Deno.chdir(tempDir);
     await Deno.writeTextFile(
       CONFIG_FILE,
-      JSON.stringify({ scheme: "Axion", configuration: "Debug Staging" }),
+      JSON.stringify({ scheme: "Axion", configuration: "Debug Staging", appName: "Axion" }),
     );
 
-    const options = await resolveRunOptions({});
-
-    assertEquals(options.scheme, "Axion");
-    assertEquals(options.configuration, "Debug Staging");
+    await assertRejects(
+      () => resolveRunOptions({}),
+      Error,
+      'contains "configuration" and "appName"',
+    );
   } finally {
     Deno.chdir(cwd);
     await Deno.remove(tempDir, { recursive: true });
@@ -29,7 +48,7 @@ Deno.test("resolveRunOptions selects the Mac destination from config", async () 
     Deno.chdir(tempDir);
     await Deno.writeTextFile(
       CONFIG_FILE,
-      JSON.stringify({ platform: "macos", scheme: "Meh", appName: "Meh" }),
+      JSON.stringify({ platform: "macos", scheme: "Meh" }),
     );
 
     const options = await resolveRunOptions({});
@@ -49,7 +68,7 @@ Deno.test("resolveRunOptions preserves watchOS platform and simulator target", a
     Deno.chdir(tempDir);
     await Deno.writeTextFile(
       CONFIG_FILE,
-      JSON.stringify({ platform: "watchos", scheme: "Bartable", appName: "Bartable" }),
+      JSON.stringify({ platform: "watchos", scheme: "Bartable" }),
     );
 
     const options = await resolveRunOptions({});

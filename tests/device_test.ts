@@ -23,6 +23,26 @@ for (const platform of ["iOS", "watchOS"]) {
   }
 }
 
+Deno.test("parseDevices excludes paired devices that are not reachable", () => {
+  const devices = [
+    {
+      identifier: "reachable",
+      deviceProperties: { name: "iPhone" },
+      hardwareProperties: { platform: "iOS", reality: "physical" },
+      connectionProperties: { transportType: "localNetwork", tunnelState: "disconnected" },
+    },
+    {
+      identifier: "unreachable",
+      deviceProperties: { name: "Coworker iPhone" },
+      hardwareProperties: { platform: "iOS", reality: "physical" },
+      connectionProperties: { tunnelState: "unavailable" },
+    },
+  ];
+  assertEquals(parseDevices({ result: { devices } }).map((device) => device.identifier), [
+    "reachable",
+  ]);
+});
+
 Deno.test("parseDevices keeps older physical devices without a reality field", () => {
   const devices = ["wired", "localNetwork"].map((transportType) => ({
     identifier: transportType,

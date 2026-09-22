@@ -31,6 +31,12 @@ export function parseDevices(json: any): AppleDevice[] {
     .filter((device: any) => {
       const reality = device.properties?.hardware?.reality ?? device.hardwareProperties?.reality;
       if (reality === "simulated") return false;
+      // Newer Xcode lists paired devices that are not reachable (no transport, tunnel
+      // unavailable). Building against them fails, so drop them.
+      const connection = device.connectionProperties;
+      if (connection && !connection.transportType && connection.tunnelState === "unavailable") {
+        return false;
+      }
       const deviceType = device.hardwareProperties?.deviceType;
       const platform = device.hardwareProperties?.platform ?? device.deviceProperties?.platform ??
         device.platform;
